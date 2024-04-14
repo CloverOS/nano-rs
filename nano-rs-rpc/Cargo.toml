@@ -1,0 +1,12 @@
+[package]
+name = "nano-rs-rpc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tonic = { workspace = true }
+etcd-client = { workspace = true }
+nano-rs-core = { path = "../nano-rs-core" }
+tower = "0.4.13"

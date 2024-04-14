@@ -1,0 +1,15 @@
+[package]
+name = "nano-rs-core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+tracing-subscriber = { workspace = true}
+tracing =  { workspace = true}
+tracing-appender =  { workspace = true}
+time =  { workspace = true}
+clap = { workspace = true }

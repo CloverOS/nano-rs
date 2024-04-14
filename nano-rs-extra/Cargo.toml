@@ -1,0 +1,36 @@
+[package]
+name = "nano-rs-extra"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+tracing-opentelemetry-instrumentation-sdk = { workspace = true }
+axum = { workspace = true }
+hyper = { workspace = true }
+http-body-util = { workspace = true }
+axum-client-ip = { workspace = true }
+
+sea-orm = { version = "0.12.7", features = ["sqlx-mysql", "runtime-tokio-rustls", "macros"] }
+log = "0.4.20"
+
+
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
+syn = { version = "2.0.55", features = ["full"] }
+quote = { version = "1.0.35", features = ["default"] }
+prettyplease = "0.2.16"
+
+
+nano-rs-core = { path = "../nano-rs-core" }
+nano-rs-build = { path = "../nano-rs-build" }
+bytes = "1.5.0"
+mime = "0.3.17"

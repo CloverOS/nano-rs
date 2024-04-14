@@ -1,0 +1,15 @@
+port: 8888
+name: example
+host: 127.0.0.1
+base_path:
+logger:
+  enable_request_body_log: true
+  logging:
+    example:
+      level: trace
+    sqlx:
+      level: warn
+    tower_http:
+      level: info
+    hyper:
+      level: info
