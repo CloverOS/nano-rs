@@ -79,8 +79,7 @@ name: example
 host: 127.0.0.1
 ```
 
-- Draft your API interface (for example, under api/pet), for get macros, please refer to [example](https://github.
-  com/CloverOS/nano-rs/blob/master/example/src/api) (documentation coming soon...)
+- Write your API code (for example, under api/pet), for get macros, please refer to [example](https://github.com/CloverOS/nano-rs/blob/master/example/src/api) (documentation coming soon...)
 ```rust
 #[get(path = "/store/name", layers = ["crate::layers::auth::auth_token1"])]
 pub async fn get_store_name() -> Result<RestResp<String>, ServerError> {
