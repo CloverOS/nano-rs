@@ -15,9 +15,9 @@ repository = "https://github.com/CloverOS/nano-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nano-rs-core = { path = "../nano-rs-core" }
+nano-rs-core = { path = "../nano-rs-core", version = "0.1.0" }
 #nano-rs-rpc = { path = "../nano-rs-rpc" }
-nano-rs-macro = { path = "../nano-rs-macro" }
-nano-rs-extra = { path = "../nano-rs-extra" }
-nano-rs-proc-macro-route = { path = "../nano-rs-proc-macro-route" }
+nano-rs-macro = { path = "../nano-rs-macro", version = "0.1.0" }
+nano-rs-extra = { path = "../nano-rs-extra", version = "0.1.0" }
+nano-rs-proc-macro-route = { path = "../nano-rs-proc-macro-route", version = "0.1.0" }
 
