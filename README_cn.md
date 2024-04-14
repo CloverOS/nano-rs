@@ -80,7 +80,7 @@ name: example
 host: 127.0.0.1
 ```
 
-- 编写你的api接口(例如在api/pet下) ,关于get宏请参考[example](https://github.com/CloverOS/nano-rs/blob/master/example/src/api)(文档正在路上...)
+- 使用宏在项目的任何地方编写你的api接口(例如在api/pet下) ,关于宏请参考[example](https://github.com/CloverOS/nano-rs/blob/master/example/src/api)(文档正在路上...)
 ```rust
 #[get(path = "/store/name", layers = ["crate::layers::auth::auth_token1"])]
 pub async fn get_store_name() -> Result<RestResp<String>, ServerError> {
@@ -92,8 +92,9 @@ pub async fn get_store_name() -> Result<RestResp<String>, ServerError> {
 ```shell
 cargo build
 ```
-
-- 添加main.rs(参考example中的项目结构)
+- 然后你将在`src`中获得名为`routes.rs`的文件。
+- 不要去编辑`routes.rs`因为每次构建的时候都会覆写该文件。
+- 编辑`main.rs`(参考example中的项目结构)
 
 ```rust
 use axum::Router;
