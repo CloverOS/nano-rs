@@ -6,10 +6,9 @@
 
 <div align="center">
   <a href="https://github.com/CloverOS/nano-rs">
-    <img src="images/logo.png" alt="Logo" width="120" height="120">
+    <img src="https://github.com/CloverOS/nano-rs/raw/main/images/logo.png" alt="Logo" width="120" height="120">
   </a>
 
-[中文文档](README_cn.md)
 </div>
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nano-rs is a lightweight, non-invasive, convention-over-configuration Rust Web service component, aimed at providing a fast and efficient development experience. By reducing the burden of configuration, it allows you to focus more on implementing business logic.
@@ -175,4 +174,4 @@ Distributed under the MIT License. For more information, see `LICENSE.txt`.
 
 [license-shield]: https://img.shields.io/github/license/CloverOS/nano-rs.svg?style=for-the-badge
 
-[license-url]: https://github.com/CloverOS/nano-rs/blob/master/LICENSE.txt
+[license-url]: https://github.com/CloverOS/nano-rs/blob/main/LICENSE.txt

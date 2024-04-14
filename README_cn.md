@@ -185,4 +185,4 @@ cargo run -- --config etc/config.yaml
 
 [license-shield]: https://img.shields.io/github/license/CloverOS/nano-rs.svg?style=for-the-badge
 
-[license-url]: https://github.com/CloverOS/nano-rs/blob/master/LICENSE.txt
+[license-url]: https://github.com/CloverOS/nano-rs/blob/main/LICENSE.txt
