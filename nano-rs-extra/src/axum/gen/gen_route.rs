@@ -33,7 +33,10 @@ impl GenRoute for AxumGenRoute {
 
         let mut use_code = self.gen_must_use_code();
 
-        for (k, _) in use_crate.iter() {
+        let mut use_crate_sort_key: Vec<_> = use_crate.keys().collect();
+        use_crate_sort_key.sort();
+        for key in use_crate_sort_key {
+            let k = key;
             let item_use: ItemUse = syn::parse_str(k).expect("Unable to parse the use crate code string");
             use_code = parse_quote!(
                 #use_code
@@ -99,7 +102,13 @@ impl GenRoute for AxumGenRoute {
             state = state.replace("#", "_").replace("::", "_");
             state = self.camel_to_snake(&state);
             let mut let_routes_code = quote!();
-            for x in code {
+            let mut code_sort = code.clone();
+            code_sort.sort_by(|a, b| {
+                let a_string = a.to_string(); // 这是一个假设的函数，需要你根据实际情况实现
+                let b_string = b.to_string();
+                a_string.cmp(&b_string)
+            });
+            for x in code_sort {
                 let_routes_code = parse_quote! {
                         #let_routes_code
                         #x

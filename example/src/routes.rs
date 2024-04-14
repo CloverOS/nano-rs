@@ -26,8 +26,8 @@ pub fn get_routes_crate_service_context(
     crate_service_context: crate::ServiceContext,
 ) -> Router {
     Router::new()
-        .route("/samoyed/name", get(crate::api::pet::samoyed::name))
         .route("/samoyed/:name", get(crate::api::pet::samoyed::hello))
+        .route("/samoyed/name", get(crate::api::pet::samoyed::name))
         .with_state(crate_service_context)
 }
 pub fn get_routes_crate_service_context_with_layer_crate_layers_auth_auth_token_crate_service_context_with_layer_crate_layers_auth_auth_token1(
