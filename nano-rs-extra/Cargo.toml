@@ -39,6 +39,6 @@ prettyplease = "0.2.16"
 
 
 nano-rs-core = { path = "../nano-rs-core", version = "0.1.0" }
-nano-rs-build = { path = "../nano-rs-build", version = "0.1.0" }
+nano-rs-build = { path = "../nano-rs-build", version = "0.1.1" }
 bytes = "1.5.0"
 mime = "0.3.17"
