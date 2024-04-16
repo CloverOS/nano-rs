@@ -1,6 +1,6 @@
 [package]
 name = "nano-rs-build"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 categories = ["web-programming", "config"]
 description = "Light Web Build Kit"

@@ -8,6 +8,7 @@ mod routes;
 mod layers;
 mod api;
 mod types;
+mod api_info;
 
 #[tokio::main]
 async fn main() {

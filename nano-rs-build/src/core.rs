@@ -7,7 +7,7 @@ use syn::token::Comma;
 
 use crate::api_file::get_rs_files;
 use crate::api_fn::{ApiFn, get_rs_files_fns};
-use crate::api_gen::{GenDoc, GenRoute};
+use crate::api_gen::{GenApiInfo, GenDoc, GenRoute};
 
 #[derive(Clone)]
 pub struct NanoBuilder {
@@ -41,6 +41,11 @@ impl NanoBuilder {
 
     pub fn gen_api_doc(&mut self, gen_doc: impl GenDoc) -> &mut Self {
         gen_doc.gen_doc(self.clone().api_gen_path, self.api_fns.clone());
+        self
+    }
+
+    pub fn gen_api_info(&mut self, gen_api_info: impl GenApiInfo) -> &mut Self {
+        gen_api_info.gen_api_info(self.clone().api_gen_path, self.api_fns.clone());
         self
     }
 }

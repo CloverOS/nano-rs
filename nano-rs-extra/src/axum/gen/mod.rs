@@ -1,2 +1,3 @@
 pub mod gen_route;
-mod gen_doc;
+pub mod gen_doc;
+pub mod gen_api_info;

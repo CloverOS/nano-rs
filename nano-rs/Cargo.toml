@@ -1,6 +1,6 @@
 [package]
 name = "nano-rs"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 categories = ["network-programming", "web-programming", "config"]
 description = "Light Web Kit"
@@ -18,6 +18,6 @@ repository = "https://github.com/CloverOS/nano-rs"
 nano-rs-core = { path = "../nano-rs-core", version = "0.1.0" }
 #nano-rs-rpc = { path = "../nano-rs-rpc" }
 nano-rs-macro = { path = "../nano-rs-macro", version = "0.1.0" }
-nano-rs-extra = { path = "../nano-rs-extra", version = "0.1.1" }
+nano-rs-extra = { path = "../nano-rs-extra", version = "0.1.2" }
 nano-rs-proc-macro-route = { path = "../nano-rs-proc-macro-route", version = "0.1.0" }
 

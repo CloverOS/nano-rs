@@ -24,7 +24,7 @@ impl GenRoute for AxumGenRoute {
         eprintln!("AxumGenRoute gen_route in {:?}", path_buf);
         let routes = path_buf.join(self.get_routes_file_path());
         if !routes.exists() {
-            fs::write(routes.as_path(), "").expect("create routes dir error");
+            fs::write(routes.as_path(), "").expect("create routes files error");
         }
         let mut fn_route_code: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut use_crate: HashMap<String, bool> = HashMap::new();
