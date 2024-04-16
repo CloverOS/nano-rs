@@ -34,7 +34,10 @@ impl GenApiInfo for AxumGenApiInfo {
             }
         );
         let mut api_info_vec: Vec<TokenStream> = vec![];
-        for (_name, api_fn) in api_fns {
+        let mut keys :Vec<_>= api_fns.keys().collect();
+        keys.sort();
+        for  k in keys {
+            let api_fn = api_fns.get(k).unwrap().clone();
             let method = api_fn.method;
             let path = api_fn.path;
             let base_path = api_fn.path_group;
