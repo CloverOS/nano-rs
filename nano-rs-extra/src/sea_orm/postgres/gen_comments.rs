@@ -78,31 +78,17 @@ impl GenComments {
 
                                             for field in &mut item_struct.fields {
                                                 for x in &ret {
-                                                    if let Some(col_name) = x.get("column_name") {
-                                                        if let Some(name_string) = col_name.as_str() {
-                                                            if let Some(ident) = field.clone().ident {
-                                                                if ident.eq(name_string) {
-                                                                    if let Some(comment) = x.get("column_comment") {
-                                                                        if let Some(comment_str) = comment.as_str() {
-                                                                            let formatted_comment = format!(" {}", comment_str);
-                                                                            if field.clone().attrs.len() > 0 {
-                                                                                if let Some(attr) = field.clone().attrs.get(0) {
-                                                                                    if !attr.meta.path().is_ident("doc") {
-                                                                                        field.attrs.push(parse_quote!(
-                                                                                            #[doc = #formatted_comment]
-                                                                                        ));
-                                                                                    }
-                                                                                }
-                                                                            } else {
-                                                                                field.attrs.push(parse_quote!(
-                                                                                        #[doc = #formatted_comment]
-                                                                                    ));
-                                                                            }
-                                                                        }
-                                                                    }
+                                                    if let (Some(col_name), Some(comment)) = (x.get("column_name").and_then(|n| n.as_str()),
+                                                                                              x.get("column_comment").and_then(|c| c.as_str())) {
+                                                        if let Some(ident) = &field.ident {
+                                                            if ident.eq(col_name) {
+                                                                let formatted_comment = format!(" {}", comment);
+                                                                // check doc exists
+                                                                let doc_exists = field.attrs.iter().any(|attr| attr.meta.path().is_ident("doc"));
+                                                                if !doc_exists {
+                                                                    field.attrs.push(parse_quote!(#[doc = #formatted_comment]));
                                                                 }
-                                                            }
-                                                        }
+                                                            }}
                                                     }
                                                 }
                                             }
