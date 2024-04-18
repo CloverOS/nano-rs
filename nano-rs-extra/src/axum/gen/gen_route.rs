@@ -233,12 +233,11 @@ impl AxumGenRoute {
         path_string
     }
 
-    fn match_use_tree(&self, tree: &UseTree, type_name: &str, parent_path: Vec<Ident>) -> Option<String> {
+    fn match_use_tree(&self, tree: &UseTree, type_name: &str, parent_path: &mut Vec<Ident>) -> Option<String> {
         match tree {
             UseTree::Path(UsePath { ident, tree, .. }) => {
-                let mut new_path = parent_path.clone();
-                new_path.push(ident.clone());
-                self.match_use_tree(tree, type_name, new_path)
+                parent_path.push(ident.clone());
+                self.match_use_tree(tree, type_name, parent_path)
             }
             UseTree::Name(UseName { ident }) => {
                 if ident == type_name {
@@ -257,7 +256,7 @@ impl AxumGenRoute {
             }
             UseTree::Group(UseGroup { items, .. }) => {
                 for item in items {
-                    if let Some(found) = self.match_use_tree(item, type_name, parent_path.clone()) {
+                    if let Some(found) = self.match_use_tree(item, type_name, parent_path) {
                         return Some(found);
                     }
                 }
@@ -269,7 +268,7 @@ impl AxumGenRoute {
 
     fn get_use_by_type_name_in_items(&self, type_name: String, item_use_vec: &Vec<ItemUse>) -> Option<String> {
         for item_use in item_use_vec.iter() {
-            let result = self.match_use_tree(&item_use.tree, &type_name, vec![]);
+            let result = self.match_use_tree(&item_use.tree, &type_name, &mut vec![]);
             if result.is_some() {
                 return result;
             }
