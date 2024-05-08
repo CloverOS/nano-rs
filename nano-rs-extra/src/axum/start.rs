@@ -55,7 +55,9 @@ pub async fn run(app: Router, service_config: nano_rs_core::config::rest::RestCo
     let listener = tokio::net::TcpListener::bind(host + ":" + service_config.port.to_string().as_str())
         .await
         .unwrap();
-    tracing::info!("listening on {}",listener.local_addr().unwrap());
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let link = format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url, url);
+    tracing::info!("listening on {}",link);
     axum::serve(listener,
                 app.layer(tower_http::trace::TraceLayer::new_for_http())
                     .into_make_service_with_connect_info::<std::net::SocketAddr>())
