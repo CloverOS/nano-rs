@@ -1,5 +1,6 @@
 use clap::Parser;
 use serde::Deserialize;
+use crate::config::rest::RestConfig;
 
 pub mod read;
 pub mod rest;
@@ -17,8 +18,8 @@ pub mod prometheus;
 /// let rest_config = nano_rs_core::config::init_config::<RestConfig>("etc/config.yaml");
 /// ```
 #[allow(dead_code)]
-pub fn init_config<T: Clone + for<'a> Deserialize<'a>>(config_path: &str) -> T {
-    let config = read::read_config(config_path).unwrap();
+pub fn init_config<T: Clone + Default + for<'a> Deserialize<'a>>(config_path: &str) -> T {
+    let config = read::read_config(config_path).unwrap_or(T::default());
     config
 }
 
@@ -33,7 +34,7 @@ pub fn init_config<T: Clone + for<'a> Deserialize<'a>>(config_path: &str) -> T {
 #[allow(dead_code)]
 pub fn init_rest_config_with_cli() -> rest::RestConfig {
     let cli = Cli::parse();
-    let rest_config = read::read_rest_config(cli.config.as_str()).unwrap();
+    let rest_config = read::read_rest_config(cli.config.as_str()).unwrap_or(RestConfig::default());
     rest_config
 }
 
@@ -48,7 +49,7 @@ pub fn init_rest_config_with_cli() -> rest::RestConfig {
 /// let config = init_config_with_cli::<RestConfig>();
 /// ```
 #[allow(dead_code)]
-pub fn init_config_with_cli<T: Clone + for<'a> Deserialize<'a>>() -> T {
+pub fn init_config_with_cli<T: Clone + Default + for<'a> Deserialize<'a>>() -> T {
     let cli = Cli::parse();
     let config = init_config(cli.config.as_str());
     config

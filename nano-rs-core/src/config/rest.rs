@@ -6,7 +6,7 @@ use crate::config::logger::LoggerConfig;
 use crate::config::prometheus::PrometheusConfig;
 use crate::config::rpc::RpcConfig;
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct RestConfig {
     /// server port
     pub port: u16,
@@ -39,6 +39,24 @@ pub struct RestConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// prometheus config
     pub prometheus: Option<PrometheusConfig>,
+}
+
+impl Default for RestConfig {
+    fn default() -> Self {
+        RestConfig {
+            port: 8080,
+            name: "ApiServer".to_string(),
+            host: None,
+            mode: None,
+            time_out: None,
+            base_path: "".to_string(),
+            log_req: true,
+            log_resp: false,
+            logger: Default::default(),
+            rpc: None,
+            prometheus: Some(PrometheusConfig::default()),
+        }
+    }
 }
 
 impl RestConfig {
