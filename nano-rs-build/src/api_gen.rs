@@ -7,7 +7,7 @@ use crate::api_fn::ApiFn;
 
 /// GenRoute trait
 pub trait GenRoute {
-    fn gen_route(&self, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>);
+    fn gen_route(&self, rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>);
 
     fn get_routes_file_path(&self) -> &'static str {
         "src/routes.rs"
@@ -16,7 +16,7 @@ pub trait GenRoute {
 
 /// GenDoc trait
 pub trait GenDoc {
-    fn gen_doc(&self, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>);
+    fn gen_doc(&self, rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>);
 }
 
 /// GenApiInfo trait

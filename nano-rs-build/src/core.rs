@@ -11,8 +11,9 @@ use crate::api_gen::{GenApiInfo, GenDoc, GenRoute};
 
 #[derive(Clone)]
 pub struct NanoBuilder {
-    api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>,Vec<ItemUse>>>,
+    api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>,
     api_gen_path: PathBuf,
+    rs_files: Vec<PathBuf>,
 }
 
 
@@ -31,16 +32,17 @@ impl NanoBuilder {
         NanoBuilder {
             api_fns,
             api_gen_path,
+            rs_files,
         }
     }
 
     pub fn gen_api_route(&mut self, gen_route: impl GenRoute) -> &mut Self {
-        gen_route.gen_route(self.clone().api_gen_path, self.api_fns.clone());
+        gen_route.gen_route(self.rs_files.clone(), self.clone().api_gen_path, self.api_fns.clone());
         self
     }
 
     pub fn gen_api_doc(&mut self, gen_doc: impl GenDoc) -> &mut Self {
-        gen_doc.gen_doc(self.clone().api_gen_path, self.api_fns.clone());
+        gen_doc.gen_doc(self.rs_files.clone(), self.clone().api_gen_path, self.api_fns.clone());
         self
     }
 

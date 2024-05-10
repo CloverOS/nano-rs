@@ -20,7 +20,7 @@ const WITHOUT_STATE: &str = "without_state";
 pub struct AxumGenRoute {}
 
 impl GenRoute for AxumGenRoute {
-    fn gen_route(&self, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>) {
+    fn gen_route(&self, _rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>) {
         eprintln!("AxumGenRoute gen_route in {:?}", path_buf);
         let routes = path_buf.join(self.get_routes_file_path());
         if !routes.exists() {
@@ -181,7 +181,6 @@ impl GenRoute for AxumGenRoute {
 
             #routes_code
         );
-        eprintln!("{}", complete_code.to_string().as_str());
         let syntax_tree = syn::parse_file(complete_code.to_string().as_str()).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
         fs::write(routes.as_path(), formatted).expect("create file failed");
@@ -307,6 +306,7 @@ impl AxumGenRoute {
                     self.insert_all_route(fn_route_code, use_crate_map, name, api_fn, &path, key);
                     continue;
                 }
+                let mut with_state = false;
                 for arg in inputs.iter() {
                     match arg {
                         FnArg::Typed(pat_type) => {
@@ -316,6 +316,7 @@ impl AxumGenRoute {
                                         match segment.ident.to_string().as_str() {
                                             //with state
                                             STATE => {
+                                                with_state = true;
                                                 let tp_vec = self.get_state_type_vec(&segment, vec![]);
                                                 for x in tp_vec {
                                                     if let Some(use_crate) = api_fn.use_crate.clone() {
@@ -326,7 +327,8 @@ impl AxumGenRoute {
                                                     }
                                                 }
                                             }
-                                            _ => {}
+                                            //without state but inputs
+                                            _ => { }
                                         }
                                     }
                                 }
@@ -335,6 +337,10 @@ impl AxumGenRoute {
                         }
                         _ => {}
                     }
+                }
+                if !with_state {
+                    let key = self.get_fn_code_key(api_fn, None);
+                    self.insert_all_route(fn_route_code, use_crate_map, name, api_fn, &path, key);
                 }
             }
         }

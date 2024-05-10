@@ -70,7 +70,6 @@ impl GenApiInfo for AxumGenApiInfo {
             #api_info_struct_code
         );
 
-        eprintln!("{}", api_info_code.to_string().as_str());
         let syntax_tree = syn::parse_file(api_info_code.to_string().as_str()).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
         fs::write(api_info.as_path(), formatted).expect("create file failed");
