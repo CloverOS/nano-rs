@@ -3,13 +3,15 @@ use std::fs;
 use std::path::PathBuf;
 
 use quote::__private::{Span, TokenStream};
-use quote::{quote};
-use syn::{ExprPath, FnArg, GenericArgument, Ident, ItemUse, parse_quote, parse_str, PathArguments, PathSegment, Type, TypePath, UseGroup, UseName, UsePath, UseRename, UseTree};
+use quote::quote;
+use syn::{ExprPath, FnArg, GenericArgument, Ident, ItemUse, parse_quote, parse_str, PathArguments, PathSegment, Type, TypePath};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenRoute;
+
+use crate::axum::gen::AxumGen;
 
 const STATE: &str = "State";
 
@@ -221,60 +223,6 @@ impl AxumGenRoute {
         result
     }
 
-    fn get_parent_path(&self, path: &Vec<Ident>) -> String {
-        let mut path_string = String::new();
-        for (i, segment) in path.iter().enumerate() {
-            path_string.push_str(&segment.to_string());
-            if i < path.len() - 1 {
-                path_string.push_str("::");
-            }
-        }
-        path_string
-    }
-
-    fn match_use_tree(&self, tree: &UseTree, type_name: &str, parent_path: &mut Vec<Ident>) -> Option<String> {
-        match tree {
-            UseTree::Path(UsePath { ident, tree, .. }) => {
-                parent_path.push(ident.clone());
-                self.match_use_tree(tree, type_name, parent_path)
-            }
-            UseTree::Name(UseName { ident }) => {
-                if ident == type_name {
-                    Some(format!("{}::{}", self.get_parent_path(&parent_path), ident))
-                } else {
-                    None
-                }
-            }
-            UseTree::Rename(UseRename { ident, rename, .. }) => {
-                let ident_str = format!("{}", ident);
-                if &ident_str == type_name || rename == type_name {
-                    Some(format!("{}::{}", self.get_parent_path(&parent_path), rename))
-                } else {
-                    None
-                }
-            }
-            UseTree::Group(UseGroup { items, .. }) => {
-                for item in items {
-                    if let Some(found) = self.match_use_tree(item, type_name, parent_path) {
-                        return Some(found);
-                    }
-                }
-                None
-            }
-            _ => None,
-        }
-    }
-
-    fn get_use_by_type_name_in_items(&self, type_name: String, item_use_vec: &Vec<ItemUse>) -> Option<String> {
-        for item_use in item_use_vec.iter() {
-            let result = self.match_use_tree(&item_use.tree, &type_name, &mut vec![]);
-            if result.is_some() {
-                return result;
-            }
-        }
-        None
-    }
-
     // Handling Generic Parameters of State Type
     fn get_state_type_vec(&self, segment: &PathSegment, mut tp_vec: Vec<String>) -> Vec<String> {
         if let PathArguments::AngleBracketed(angle_bracketed_param) = &segment.arguments {
@@ -320,7 +268,7 @@ impl AxumGenRoute {
                                                 let tp_vec = self.get_state_type_vec(&segment, vec![]);
                                                 for x in tp_vec {
                                                     if let Some(use_crate) = api_fn.use_crate.clone() {
-                                                        if let Some(use_string) = self.get_use_by_type_name_in_items(x, &use_crate) {
+                                                        if let Some(use_string) = self.get_full_crate_name(x, &use_crate) {
                                                             let key = self.get_fn_code_key(api_fn, Some(use_string));
                                                             self.insert_all_route(fn_route_code, use_crate_map, name, api_fn, &path, key);
                                                         }
@@ -328,7 +276,7 @@ impl AxumGenRoute {
                                                 }
                                             }
                                             //without state but inputs
-                                            _ => { }
+                                            _ => {}
                                         }
                                     }
                                 }
@@ -509,3 +457,5 @@ impl AxumGenRoute {
         AxumGenRoute {}
     }
 }
+
+impl AxumGen for AxumGenRoute {}
