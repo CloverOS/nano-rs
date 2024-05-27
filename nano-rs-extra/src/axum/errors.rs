@@ -6,10 +6,10 @@ pub struct ServerError(anyhow::Error);
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         tracing::error!("INTERNAL_SERVER_ERROR: {} - {:#?}", self.0, self.0.backtrace());
-        RestResp {
+        RestResp::<()> {
             code: 500,
             msg: "INTERNAL_SERVER_ERROR".to_string(),
-            data: (),
+            data: None,
         }
             .into_response()
     }

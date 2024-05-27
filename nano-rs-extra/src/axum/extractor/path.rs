@@ -29,57 +29,57 @@ impl<S, T> FromRequestParts<S> for Path<T>
 
                         let kind = inner.into_kind();
                         let body = match &kind {
-                            ErrorKind::WrongNumberOfParameters { .. } => RestResp {
+                            ErrorKind::WrongNumberOfParameters { .. } => RestResp::<()> {
                                 code: 500,
                                 msg: kind.to_string(),
-                                data: (),
+                                data: None,
                             },
 
-                            ErrorKind::ParseErrorAtKey { .. } => RestResp {
+                            ErrorKind::ParseErrorAtKey { .. } => RestResp::<()> {
                                 code: 500,
                                 msg: kind.to_string(),
-                                data: (),
+                                data: None,
                             },
 
-                            ErrorKind::ParseErrorAtIndex { .. } => RestResp {
+                            ErrorKind::ParseErrorAtIndex { .. } => RestResp::<()> {
                                 code: 500,
                                 msg: kind.to_string(),
-                                data: (),
+                                data: None,
                             },
 
-                            ErrorKind::ParseError { .. } => RestResp {
+                            ErrorKind::ParseError { .. } => RestResp::<()> {
                                 code: 500,
                                 msg: kind.to_string(),
-                                data: (),
+                                data: None,
                             },
 
-                            ErrorKind::InvalidUtf8InPathParam { key: _key } => RestResp {
+                            ErrorKind::InvalidUtf8InPathParam { key: _key } => RestResp::<()> {
                                 code: 500,
                                 msg: kind.to_string(),
-                                data: (),
+                                data: None,
                             },
 
                             ErrorKind::UnsupportedType { .. } => {
                                 // this error is caused by the programmer using an unsupported type
                                 // (such as nested maps) so respond with `500` instead
                                 status = StatusCode::INTERNAL_SERVER_ERROR;
-                                RestResp {
+                                RestResp::<()> {
                                     code: 500,
                                     msg: kind.to_string(),
-                                    data: (),
+                                    data: None,
                                 }
                             }
 
-                            ErrorKind::Message(msg) => RestResp {
+                            ErrorKind::Message(msg) => RestResp::<()> {
                                 code: 500,
                                 msg: msg.clone(),
-                                data: (),
+                                data: None,
                             },
 
-                            _ => RestResp {
+                            _ => RestResp::<()> {
                                 code: 500,
                                 msg: format!("Unhandled deserialization error: {kind}"),
-                                data: (),
+                                data: None,
                             },
                         };
 
@@ -87,18 +87,18 @@ impl<S, T> FromRequestParts<S> for Path<T>
                     }
                     PathRejection::MissingPathParams(error) => (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        RestResp {
+                        RestResp::<()> {
                             code: 500,
                             msg: error.to_string(),
-                            data: (),
+                            data: None,
                         },
                     ),
                     _ => (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        RestResp {
+                        RestResp::<()> {
                             code: 500,
                             msg: format!("Unhandled path rejection: {rejection}"),
-                            data: (),
+                            data: None,
                         },
                     ),
                 };

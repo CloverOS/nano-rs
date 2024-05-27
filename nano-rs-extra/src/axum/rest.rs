@@ -1,15 +1,15 @@
 use axum::http::{header, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use serde::{Deserialize, Serialize};
 use bytes::{BufMut, BytesMut};
-use crate::axum::errors::ServerError;
+use serde::{Deserialize, Serialize};
 
+use crate::axum::errors::ServerError;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RestResp<T> {
     pub code: i32,
     pub msg: String,
-    pub data: T,
+    pub data: Option<T>,
 }
 
 impl<T> IntoResponse for RestResp<T> where T: Serialize {
@@ -58,7 +58,7 @@ pub fn biz_err(code: i32, msg: String) -> Result<RestResp<()>, ServerError> {
     Ok(RestResp {
         code,
         msg,
-        data: (),
+        data: None,
     })
 }
 
@@ -86,6 +86,6 @@ pub fn biz_ok<T>(data: T) -> Result<RestResp<T>, ServerError> {
     Ok(RestResp {
         code: 200,
         msg: "Success".to_string(),
-        data,
+        data: Some(data),
     })
 }
