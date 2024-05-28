@@ -17,6 +17,10 @@ pub trait GenRoute {
 /// GenDoc trait
 pub trait GenDoc {
     fn gen_doc(&self, rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>);
+
+    fn get_doc_file_path(&self) -> &'static str {
+        "src/doc.rs"
+    }
 }
 
 /// GenApiInfo trait

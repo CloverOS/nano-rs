@@ -8,11 +8,11 @@ use syn::punctuated::Punctuated;
 use syn::token::Comma;
 
 use crate::api_doc::ApiFnDoc;
-use crate::api_parse::{parse_fn_item_in_mod, parse_fn_item_with_path};
+use crate::api_parse::{parse_fn_item, parse_fn_item_in_mod};
 
 /// 构建API接口信息结构体
 /// Build API interface information structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiFn<L, I, U> {
     /// api function name
     pub api_fn_name: String,
@@ -36,7 +36,7 @@ pub struct ApiFn<L, I, U> {
 
 pub fn get_rs_files_fns(
     files: &mut Vec<PathBuf>,
-) -> Result<HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>,Vec<ItemUse>>>, Box<dyn Error>> {
+) -> Result<HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>, Box<dyn Error>> {
     let mut fns = HashMap::new();
     for file in files {
         // 读入你的 Rust 源文件
@@ -57,7 +57,7 @@ pub fn get_rs_files_fns(
         for item in &syntax_tree.items {
             match item {
                 Item::Fn(item_fn) => {
-                    if let Some(parsed) = parse_fn_item_with_path(item_fn, file.clone())? {
+                    if let Some(parsed) = parse_fn_item(item_fn, file.clone(), None)? {
                         let (fn_name, mut api_fn) = parsed;
                         eprintln!("add fn :{:?}", fn_name);
                         api_fn.use_crate = Some(item_uses.clone());
