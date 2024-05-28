@@ -18,7 +18,7 @@ tracing-opentelemetry-instrumentation-sdk = "0.18.0"
 clap = { version = "4.5.3", features = ["derive"] }
 tower = { version = "0.4.13", features = ["util", "filter"] }
 tower-http = { version = "0.5.2", features = ["full"] }
-axum = { version = "0.7.4" }
+axum = { version = "0.7.5" }
 hyper = { version = "1.2.0", features = ["full"] }
 http-body-util = "0.1.1"
 axum-client-ip = "0.6.0"

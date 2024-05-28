@@ -17,7 +17,7 @@ pub fn gen_fn_full_crate_path(path_buf: &PathBuf, fn_name: String, mod_name: Opt
         let after_src_path = path_buf.iter().skip(src_index + 1).collect::<PathBuf>();
 
         // 对于最后的文件 去除扩展名
-        let module_parts: Vec<String> = after_src_path
+        let mut module_parts: Vec<String> = after_src_path
             .iter()
             .take_while(|&component| component != after_src_path.file_name().unwrap())
             .map(|s| {
@@ -27,6 +27,13 @@ pub fn gen_fn_full_crate_path(path_buf: &PathBuf, fn_name: String, mod_name: Opt
                     .replace("/", "::")
             })
             .collect();
+
+        mod_name.is_none().then(|| {
+            // 处理文件名去掉.rs扩展
+            if let Some(file_stem) = after_src_path.file_stem() {
+                module_parts.push(file_stem.to_string_lossy().into_owned());
+            }
+        });
 
         // 将各部分拼接成完整的模块路径
         let module_path = module_parts.join("::");
@@ -81,7 +88,7 @@ pub fn parse_fn_item_in_mod(fns: &mut HashMap<String, ApiFn<String, Punctuated<F
                         parse_fn_item(fn_item, path_buf.clone(), Some(mod_name)).unwrap()
                     {
                         let (fn_name, mut api_fn) = parsed;
-                        eprintln!("add fn :{:?}", fn_name);
+                        eprintln!("add fn in mod :{:?}", fn_name);
                         api_fn.use_crate = Some(item_uses.clone());
                         fns.insert(fn_name, api_fn);
                     }
