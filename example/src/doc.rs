@@ -25,10 +25,14 @@ use utoipa::OpenApi;
     ),
     components(
         schemas(
-            crate::model::pet::Pet,
             crate::model::pet::Meta,
-            crate::types::pet::PetShower
+            crate::types::pet::PetShower,
+            crate::model::pet::Pet
         )
+    ),
+    servers(
+        (url = "", description = "dev"),
+        (url = "https://example.com", description = "prod"),
     ),
     tags()
 )]
