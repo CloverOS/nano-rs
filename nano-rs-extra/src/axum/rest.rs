@@ -54,7 +54,7 @@ impl<T> IntoResponse for RestResp<T> where T: Serialize {
 ///    biz_err(500, "error".to_string())
 /// }
 /// ```
-pub fn biz_err(code: i32, msg: String) -> Result<RestResp<()>, ServerError> {
+pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
     Ok(RestResp {
         code,
         msg,
