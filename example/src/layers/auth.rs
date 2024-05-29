@@ -11,10 +11,10 @@ pub async fn auth_token(State(_svc): State<ServiceContext>,request: Request, nex
     if true {
         Ok(next.run(request).await)
     }else{
-        return Err(RestResp {
+        return Err(RestResp::<()> {
             code: 502,
             msg: "auth server not found, please try again later".to_string(),
-            data: (),
+            data: None,
         });
     }
 }
@@ -24,10 +24,10 @@ pub async fn auth_token1(request: Request, next: Next) -> Result<Response, impl 
     if true {
         Ok(next.run(request).await)
     }else{
-        return Err(RestResp {
+        return Err(RestResp::<()> {
             code: 502,
             msg: "auth server not found, please try again later".to_string(),
-            data: (),
+            data: None,
         });
     }
 }

@@ -10,6 +10,9 @@ nano-rs = { path = "../nano-rs" }
 axum = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
+tower-http = { workspace = true }
+utoipa = { version = "4.2.3", features = ["axum_extras"] }
+utoipa-rapidoc = { version = "4.0.0", features = ["axum"] }
 
 
 sea-orm = { version = "0.12.15", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
@@ -17,7 +20,8 @@ sea-orm = { version = "0.12.15", features = ["sqlx-postgres", "runtime-tokio-rus
 
 [build-dependencies]
 nano-rs = { path = "../nano-rs" }
-nano-rs-build = { path = "../nano-rs-build"}
+nano-rs-build = { path = "../nano-rs-build" }
+utoipa = { version = "4.2.3", features = ["axum_extras"] }
 
 [profile.release]
 strip = true

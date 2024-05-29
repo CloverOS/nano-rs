@@ -14,6 +14,11 @@ pub fn get_routes(
             ),
         )
         .merge(
+            get_routes_nano_rs_config_rest_rest_config(
+                nano_rs_config_rest_rest_config.clone(),
+            ),
+        )
+        .merge(
             get_routes_nano_rs_config_rest_rest_config_with_layer_crate_layers_auth_auth_token_crate_service_context(
                 nano_rs_config_rest_rest_config.clone(),
                 crate_service_context.clone(),
@@ -44,6 +49,18 @@ pub fn get_routes_crate_service_context_with_layer_crate_layers_auth_auth_token_
         .route_layer(axum::middleware::from_fn(crate::layers::auth::auth_token1))
         .with_state(crate_service_context)
 }
+pub fn get_routes_nano_rs_config_rest_rest_config(
+    nano_rs_config_rest_rest_config: nano_rs::config::rest::RestConfig,
+) -> Router {
+    Router::new()
+        .route("/store/pet/form", post(crate::api::pet::store::add_form_pet))
+        .route("/store/pet/json", post(crate::api::pet::store::add_json_pet))
+        .route(
+            "/store/pet/list/:page/:count",
+            post(crate::api::pet::store::pet_page_list),
+        )
+        .with_state(nano_rs_config_rest_rest_config)
+}
 pub fn get_routes_nano_rs_config_rest_rest_config_with_layer_crate_layers_auth_auth_token_crate_service_context(
     nano_rs_config_rest_rest_config: nano_rs::config::rest::RestConfig,
     crate_service_context: crate::ServiceContext,
@@ -59,7 +76,14 @@ pub fn get_routes_nano_rs_config_rest_rest_config_with_layer_crate_layers_auth_a
         .with_state(nano_rs_config_rest_rest_config)
 }
 pub fn get_routes_without_state() -> Router {
-    Router::new().route("/samoyed/miss", get(crate::api::pet::samoyed::miss))
+    Router::new()
+        .route("/samoyed/miss", get(crate::api::pet::samoyed::miss))
+        .route("/store/pet", get(crate::api::pet::store::get_query_pet_name))
+        .route("/store/pet/:id", get(crate::api::pet::store::get_pet_name))
+        .route(
+            "/store/pet/list/:page/:count/:id",
+            get(crate::api::pet::store::get_pet_name_list),
+        )
 }
 pub fn get_routes_without_state_with_layer_crate_layers_auth_auth_token1() -> Router {
     Router::new()
