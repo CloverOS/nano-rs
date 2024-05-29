@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
-use syn::{FnArg, Item, ItemUse};
+use syn::{Attribute, FnArg, Item, ItemUse};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 
@@ -13,7 +13,7 @@ use crate::api_parse::{parse_fn_item, parse_fn_item_in_mod};
 /// 构建API接口信息结构体
 /// Build API interface information structure
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ApiFn<L, I, U> {
+pub struct ApiFn<L, I, U, A> {
     /// api function name
     pub api_fn_name: String,
     /// layer function name
@@ -32,11 +32,13 @@ pub struct ApiFn<L, I, U> {
     pub api_fn_doc: Option<ApiFnDoc>,
     /// use crate
     pub use_crate: Option<U>,
+    /// attrs token steam
+    pub attrs: Option<A>,
 }
 
 pub fn get_rs_files_fns(
     files: &mut Vec<PathBuf>,
-) -> Result<HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>, Box<dyn Error>> {
+) -> Result<HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>, Box<dyn Error>> {
     let mut fns = HashMap::new();
     for file in files {
         // 读入你的 Rust 源文件

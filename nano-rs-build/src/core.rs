@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use syn::{FnArg, ItemUse};
+use syn::{Attribute, FnArg, ItemUse};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 
@@ -11,7 +11,7 @@ use crate::api_gen::{GenApiInfo, GenDoc, GenRoute};
 
 #[derive(Clone)]
 pub struct NanoBuilder {
-    api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>,
+    api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>,
     api_gen_path: PathBuf,
     rs_files: Vec<PathBuf>,
 }

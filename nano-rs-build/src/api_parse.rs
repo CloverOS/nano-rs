@@ -67,7 +67,7 @@ pub fn extract_doc_comments(attrs: &Vec<Attribute>) -> Vec<String> {
         .collect()
 }
 
-pub fn parse_fn_item_in_mod(fns: &mut HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>, item_mod: &ItemMod, mod_name: &str, path_buf: PathBuf) {
+pub fn parse_fn_item_in_mod(fns: &mut HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>, item_mod: &ItemMod, mod_name: &str, path_buf: PathBuf) {
     //先获取全部的use,防止有些文件没有进行rustfmt
     let mut item_uses: Vec<ItemUse> = vec![];
     for content in item_mod.content.iter() {
@@ -107,7 +107,7 @@ pub fn parse_fn_item_in_mod(fns: &mut HashMap<String, ApiFn<String, Punctuated<F
     }
 }
 
-pub fn parse_fn_item(item_fn: &ItemFn, path_buf: PathBuf, mod_name: Option<&str>) -> Result<Option<(String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>)>, Box<dyn Error>> {
+pub fn parse_fn_item(item_fn: &ItemFn, path_buf: PathBuf, mod_name: Option<&str>) -> Result<Option<(String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>)>, Box<dyn Error>> {
     let fn_full_crate_path;
     //获取函数上的标记宏
     for attr in &item_fn.attrs {
@@ -142,7 +142,7 @@ pub fn parse_fn_item(item_fn: &ItemFn, path_buf: PathBuf, mod_name: Option<&str>
     Ok(None)
 }
 
-pub fn parse_api_info(item_fn: &ItemFn, attr: &Attribute, method: &str) -> Result<ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>, Box<dyn Error>> {
+pub fn parse_api_info(item_fn: &ItemFn, attr: &Attribute, method: &str) -> Result<ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>, Box<dyn Error>> {
     let api_macro_info = attr.parse_args::<ApiMacroInfo>()?;
     let open_token = if let Some(open) = api_macro_info.open_token {
         open.value_token.value
@@ -199,6 +199,7 @@ pub fn parse_api_info(item_fn: &ItemFn, attr: &Attribute, method: &str) -> Resul
             },
         }),
         use_crate: None,
+        attrs: Some(item_fn.attrs.clone()),
     };
     Ok(api_fn)
 }
