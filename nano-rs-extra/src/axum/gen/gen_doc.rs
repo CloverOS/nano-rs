@@ -58,8 +58,10 @@ impl GenDoc for AxumGenDoc {
         }
 
         let mut components_code = vec![];
-        for (name, _) in struct_map {
-            let type_path: TypePath = parse_str(name.as_str()).expect("Failed to parse type path");
+        let mut struct_map_keys: Vec<_> = struct_map.keys().collect();
+        struct_map_keys.sort();
+        for key in struct_map_keys {
+            let type_path: TypePath = parse_str(key.as_str()).expect("Failed to parse type path");
             components_code.push(quote! {
                 #type_path
             });
