@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use quote::__private::{Span, TokenStream};
 use quote::quote;
-use syn::{ExprPath, FnArg, GenericArgument, Ident, ItemUse, parse_quote, parse_str, PathArguments, PathSegment, Type, TypePath};
+use syn::{Attribute, ExprPath, FnArg, GenericArgument, Ident, ItemUse, parse_quote, parse_str, PathArguments, PathSegment, Type, TypePath};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 
@@ -22,7 +22,7 @@ const WITHOUT_STATE: &str = "without_state";
 pub struct AxumGenRoute {}
 
 impl GenRoute for AxumGenRoute {
-    fn gen_route(&self, _rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>) {
+    fn gen_route(&self, _rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>) {
         eprintln!("AxumGenRoute gen_route in {:?}", path_buf);
         let routes = path_buf.join(self.get_routes_file_path());
         if !routes.exists() {
@@ -244,7 +244,7 @@ impl AxumGenRoute {
         tp_vec
     }
 
-    fn parse_routes(&self, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>,
+    fn parse_routes(&self, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>,
                     fn_route_code: &mut HashMap<String, Vec<TokenStream>>, use_crate_map: &mut HashMap<String, bool>) {
         for (name, api_fn) in api_fns.iter() {
             let path = api_fn.clone().path;
@@ -293,7 +293,7 @@ impl AxumGenRoute {
             }
         }
     }
-    fn insert_all_route(&self, fn_route_code: &mut HashMap<String, Vec<TokenStream>>, use_crate_map: &mut HashMap<String, bool>, name: &String, api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>, path: &String, key: String) {
+    fn insert_all_route(&self, fn_route_code: &mut HashMap<String, Vec<TokenStream>>, use_crate_map: &mut HashMap<String, bool>, name: &String, api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>, path: &String, key: String) {
         match api_fn.method.as_str() {
             "post" => {
                 self.post_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
@@ -434,7 +434,7 @@ impl AxumGenRoute {
             )]);
         }
     }
-    fn get_fn_code_key(&self, api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>, use_string: Option<String>) -> String {
+    fn get_fn_code_key(&self, api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>, use_string: Option<String>) -> String {
         let mut key;
         if let Some(use_string) = use_string {
             key = format!("{}", use_string.clone());

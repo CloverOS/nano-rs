@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use quote::__private::TokenStream;
 use quote::quote;
-use syn::{FnArg, ItemUse, parse_quote};
+use syn::{Attribute, FnArg, ItemUse, parse_quote};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 
@@ -14,7 +14,7 @@ use nano_rs_build::api_gen::GenApiInfo;
 pub struct AxumGenApiInfo {}
 
 impl GenApiInfo for AxumGenApiInfo {
-    fn gen_api_info(&self, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>>>) {
+    fn gen_api_info(&self, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>) {
         eprintln!("gen_api_info in {:?}", path_buf);
         let api_info = path_buf.join(self.get_api_info_file_path());
         if !api_info.exists() {
@@ -34,9 +34,9 @@ impl GenApiInfo for AxumGenApiInfo {
             }
         );
         let mut api_info_vec: Vec<TokenStream> = vec![];
-        let mut keys :Vec<_>= api_fns.keys().collect();
+        let mut keys: Vec<_> = api_fns.keys().collect();
         keys.sort();
-        for  k in keys {
+        for k in keys {
             let api_fn = api_fns.get(k).unwrap().clone();
             let method = api_fn.method;
             let path = api_fn.path;
@@ -46,7 +46,7 @@ impl GenApiInfo for AxumGenApiInfo {
             let mut group_name = "".to_string();
             if let Some(api_doc) = api_fn.api_fn_doc {
                 summary = api_doc.api;
-                group_name = api_doc.group;
+                group_name = api_doc.api_group;
             }
             let public = api_fn.public;
             api_info_vec.push(quote! {
