@@ -89,3 +89,43 @@ pub fn biz_ok<T>(data: T) -> Result<RestResp<T>, ServerError> {
         data: Some(data),
     })
 }
+
+
+/// biz_err macro
+///
+/// # Example
+/// ```rust
+/// fn main() {
+///     use nano_rs_extra::axum::errors::ServerError;
+///     use nano_rs_extra::axum::rest::RestResp;
+///     use nano_rs_extra::biz_err;
+///     let result: Result<RestResp<()>, ServerError> = biz_err!();
+///     let result_with_msg: Result<RestResp<()>, ServerError> = biz_err!("Custom message");
+///     let custom_result: Result<RestResp<()>, ServerError> = biz_err!(404, "Not Found");
+/// }
+/// ```
+///
+#[macro_export]
+macro_rules! biz_err {
+    // 只有一个参数时（字符串字面量），假设这是 `msg`，`code` 使用默认值500
+    ($msg:expr) => {
+        biz_err(500, $msg.to_string())
+    };
+
+    // 两个参数，`code` 和 `msg`
+    ($code:expr, $msg:expr) => {{
+        pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
+            Ok(RestResp {
+                code,
+                msg,
+                data: None,
+            })
+        }
+
+        biz_err($code, $msg.to_editionring())
+    }};
+
+    () => {
+        biz_err(500, "failed".to_string())
+    };
+}
