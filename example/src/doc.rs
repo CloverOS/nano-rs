@@ -25,8 +25,10 @@ use utoipa::OpenApi;
     ),
     components(
         schemas(
+            crate::model::pet::InlineThings,
             crate::model::pet::Meta,
             crate::model::pet::Pet,
+            crate::model::pet::PetForm,
             crate::types::pet::PetShower
         )
     ),

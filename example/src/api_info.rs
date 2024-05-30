@@ -15,21 +15,22 @@ pub fn get_api_info() -> Vec<ApiInfo> {
         "shower".to_string(), summary : " Give your Samoyed a bath".to_string(), public :
         false, group_name : "Samoyed".to_string(), }, ApiInfo { method : "post"
         .to_string(), path : "/store/pet/form".to_string(), base_path : "".to_string(),
-        handler_fun : "add_form_pet".to_string(), summary : " Add a new pet to the store"
+        handler_fun : "add_form_pet".to_string(), summary :
+        " Add a new pet to the store(form)".to_string(), public : false, group_name :
+        "Store".to_string(), }, ApiInfo { method : "post".to_string(), path :
+        "/store/pet/json".to_string(), base_path : "".to_string(), handler_fun :
+        "add_json_pet".to_string(), summary : " Add a new pet to the store(json)"
         .to_string(), public : false, group_name : "Store".to_string(), }, ApiInfo {
-        method : "post".to_string(), path : "/store/pet/json".to_string(), base_path : ""
-        .to_string(), handler_fun : "add_json_pet".to_string(), summary :
-        " Add a new pet to the store".to_string(), public : false, group_name : "Store"
-        .to_string(), }, ApiInfo { method : "get".to_string(), path : "/store/pet/:id"
-        .to_string(), base_path : "".to_string(), handler_fun : "get_pet_name"
-        .to_string(), summary : " Get pet by id".to_string(), public : false, group_name
-        : "Store".to_string(), }, ApiInfo { method : "get".to_string(), path :
+        method : "get".to_string(), path : "/store/pet/:id".to_string(), base_path : ""
+        .to_string(), handler_fun : "get_pet_name".to_string(), summary :
+        " Get pet by id".to_string(), public : false, group_name : "Store".to_string(),
+        }, ApiInfo { method : "get".to_string(), path :
         "/store/pet/list/:page/:count/:id".to_string(), base_path : "".to_string(),
-        handler_fun : "get_pet_name_list".to_string(), summary : " Get pet list"
+        handler_fun : "get_pet_name_list".to_string(), summary : " Get pet list by id"
         .to_string(), public : false, group_name : "Store".to_string(), }, ApiInfo {
         method : "get".to_string(), path : "/store/pet".to_string(), base_path : ""
         .to_string(), handler_fun : "get_query_pet_name".to_string(), summary :
-        " Get pet by id".to_string(), public : false, group_name : "Store".to_string(),
+        " Query pet by id".to_string(), public : false, group_name : "Store".to_string(),
         }, ApiInfo { method : "get".to_string(), path : "/store/name".to_string(),
         base_path : "".to_string(), handler_fun : "get_store_name".to_string(), summary :
         " Get the default pet store name".to_string(), public : false, group_name :
@@ -39,8 +40,7 @@ pub fn get_api_info() -> Vec<ApiInfo> {
         false, group_name : "Store".to_string(), }, ApiInfo { method : "post"
         .to_string(), path : "/store/pet/list/:page/:count".to_string(), base_path : ""
         .to_string(), handler_fun : "pet_page_list".to_string(), summary :
-        " Add a new pet to the store".to_string(), public : false, group_name : "Store"
-        .to_string(), }
+        " Get pet list".to_string(), public : false, group_name : "Store".to_string(), }
     ]
 }
 #[allow(dead_code)]
