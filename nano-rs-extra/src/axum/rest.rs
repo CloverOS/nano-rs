@@ -107,12 +107,10 @@ pub fn biz_ok<T>(data: T) -> Result<RestResp<T>, ServerError> {
 ///
 #[macro_export]
 macro_rules! biz_err {
-    // 只有一个参数时（字符串字面量），假设这是 `msg`，`code` 使用默认值500
     ($msg:expr) => {
         biz_err(500, $msg.to_string())
     };
 
-    // 两个参数，`code` 和 `msg`
     ($code:expr, $msg:expr) => {{
         pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
             Ok(RestResp {
