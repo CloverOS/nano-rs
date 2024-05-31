@@ -55,6 +55,7 @@ impl<T> IntoResponse for RestResp<T> where T: Serialize {
 /// }
 /// ```
 pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
+    tracing::error!("code: {} - {:#?}",code,msg);
     Ok(RestResp {
         code,
         msg,
@@ -77,17 +78,47 @@ pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
 /// }
 ///
 /// pub async fn test() -> Result<RestResp<TestStruct>, ServerError> {
-///   biz_ok(TestStruct{
+///   biz_ok(200,TestStruct{
 ///     name: "test".to_string(),
 ///   })
 /// }
 /// ```
-pub fn biz_ok<T>(data: T) -> Result<RestResp<T>, ServerError> {
+pub fn biz_ok<T>(code:i32,data: T) -> Result<RestResp<T>, ServerError> {
     Ok(RestResp {
-        code: 200,
+        code,
         msg: "Success".to_string(),
         data: Some(data),
     })
+}
+
+
+/// biz_ok macro
+///
+/// # Example
+/// ```rust
+/// fn main() {
+///     use nano_rs_extra::axum::errors::ServerError;
+///     use nano_rs_extra::axum::rest::RestResp;
+///     use nano_rs_extra::biz_ok;
+///     let result: Result<RestResp<()>, ServerError> = biz_ok!();
+///     let result_with_msg: Result<RestResp<()>, ServerError> = biz_ok!("Custom message");
+///     let custom_result: Result<RestResp<()>, ServerError> = biz_ok!(203, "Yes");
+/// }
+/// ```
+///
+#[macro_export]
+macro_rules! biz_ok {
+    ($data:expr) => {
+        nano_rs::axum::rest::biz_ok(200, $data)
+    };
+
+    ($code:expr, $data:expr) => {{
+        nano_rs::axum::rest::biz_ok($code, $data)
+    }};
+
+    () => {
+        nano_rs::axum::rest::biz_ok(200, "Success".to_string())
+    };
 }
 
 
@@ -108,22 +139,14 @@ pub fn biz_ok<T>(data: T) -> Result<RestResp<T>, ServerError> {
 #[macro_export]
 macro_rules! biz_err {
     ($msg:expr) => {
-        biz_err(500, $msg.to_string())
+        nano_rs::axum::rest::biz_err(500, $msg)
     };
 
     ($code:expr, $msg:expr) => {{
-        pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
-            Ok(RestResp {
-                code,
-                msg,
-                data: None,
-            })
-        }
-
-        biz_err($code, $msg.to_editionring())
+        nano_rs::axum::rest::biz_err($code, $msg)
     }};
 
     () => {
-        biz_err(500, "failed".to_string())
+        nano_rs::axum::rest::biz_err(500, "error".to_string())
     };
 }

@@ -4,8 +4,8 @@ pub mod samoyed {
     use axum::extract::{Path, State};
 
     use nano_rs::axum::errors::ServerError;
-    use nano_rs::axum::rest::{biz_err, biz_ok, RestResp};
-    use nano_rs::{get, post};
+    use nano_rs::axum::rest::{RestResp};
+    use nano_rs::{biz_err, biz_ok, get, post};
 
     use crate::ServiceContext;
     use crate::types::pet::PetShower;
@@ -23,7 +23,7 @@ pub mod samoyed {
         path = "/samoyed/shower", group = "Samoyed", layers = ["crate::layers::auth::auth_token#{crate::ServiceContext}", "crate::layers::auth::auth_token1"]
     )]
     pub async fn shower(State(_svc): State<ServiceContext>) -> Result<RestResp<PetShower>, ServerError> {
-        biz_ok(PetShower {
+        biz_ok!(PetShower {
             name: "mantou".to_string(),
             status: "clean! Ready to go home".to_string(),
         })
@@ -40,7 +40,7 @@ pub mod samoyed {
     )]
     #[get(path = "/samoyed/name", group = "Samoyed")]
     pub async fn name(State(_svc): State<ServiceContext>) -> Result<RestResp<String>, ServerError> {
-        biz_ok("mantou".to_string())
+        biz_ok!("mantou".to_string())
     }
 
     /// Say Hello to name
@@ -57,7 +57,7 @@ pub mod samoyed {
     )]
     #[get(path = "/samoyed/:name", group = "Samoyed")]
     pub async fn hello(Path(name): Path<String>, State(_svc): State<ServiceContext>) -> Result<RestResp<String>, ServerError> {
-        biz_ok(name)
+        biz_ok!(name)
     }
 
     /// Miss mantou so much
@@ -70,7 +70,7 @@ pub mod samoyed {
         )
     )]
     #[get(path = "/samoyed/miss", group = "Samoyed")]
-    pub async fn miss() -> Result<RestResp<()>, ServerError> {
-        biz_err(520, "Already in heaven".to_string())
+    pub async fn miss() -> Result<RestResp<String>, ServerError> {
+        biz_err!(520, "Already in heaven".to_string())
     }
 }

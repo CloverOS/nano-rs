@@ -1,10 +1,10 @@
 use axum::{Form, Json};
 use axum::extract::{Query, State};
 
-use nano_rs::{biz_err, get, post};
+use nano_rs::{biz_err, biz_ok, get, post};
 use nano_rs::axum::errors::ServerError;
 use nano_rs::axum::extractor::path::Path;
-use nano_rs::axum::rest::{biz_err, biz_ok, RestResp};
+use nano_rs::axum::rest::{RestResp};
 use nano_rs::config::rest::RestConfig;
 
 use crate::model::pet::{Meta, Page, Params, Pet, PetForm, QueryPet};
@@ -20,7 +20,7 @@ use crate::model::pet::{Meta, Page, Params, Pet, PetForm, QueryPet};
 )]
 #[get(path = "/store/name", group = "Store", layers = ["crate::layers::auth::auth_token1"])]
 pub async fn get_store_name() -> Result<RestResp<String>, ServerError> {
-    biz_ok("Doggy Store".to_string())
+    biz_ok!("Doggy Store".to_string())
 }
 
 /// Get Store's telephone number
@@ -36,7 +36,7 @@ pub async fn get_store_name() -> Result<RestResp<String>, ServerError> {
     path = "/store/tel", group = "Store", layers = ["crate::layers::auth::auth_token#{crate::ServiceContext}"]
 )]
 pub async fn get_store_tel(State(rest_config): State<RestConfig>) -> Result<RestResp<String>, ServerError> {
-    biz_ok(rest_config.name.to_string())
+    biz_ok!(rest_config.name.to_string())
 }
 
 /// Add a new pet to the store(json)
@@ -51,7 +51,7 @@ pub async fn get_store_tel(State(rest_config): State<RestConfig>) -> Result<Rest
 )]
 #[post(path = "/store/pet/json", group = "Store")]
 pub async fn add_json_pet(State(_rest_config): State<RestConfig>, Json(pet): Json<Pet>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(pet)
+    biz_ok!(pet)
 }
 
 /// Add a new pet to the store(form)
@@ -81,7 +81,7 @@ pub async fn add_form_pet(State(_rest_config): State<RestConfig>, Form(_pet): Fo
 )]
 #[get(path = "/store/pet/:id", group = "Store")]
 pub async fn get_pet_name(Path(params): Path<Params>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(Pet {
+    biz_ok!(Pet {
         id: params.id,
         name: "Doggy".to_string(),
         tag: None,
@@ -104,7 +104,7 @@ pub async fn get_pet_name(Path(params): Path<Params>) -> Result<RestResp<Pet>, S
 #[post(path = "/store/pet/list/:page/:count", group = "Store")]
 pub async fn pet_page_list(State(_rest_config): State<RestConfig>, Path(_page): Path<Page>) -> Result<RestResp<Vec<Pet>>,
     ServerError> {
-    biz_ok(vec![])
+    biz_ok!(vec![])
 }
 
 /// Get pet list by id
@@ -124,7 +124,7 @@ pub async fn pet_page_list(State(_rest_config): State<RestConfig>, Path(_page): 
 )]
 #[get(path = "/store/pet/list/:page/:count/:id", group = "Store")]
 pub async fn get_pet_name_list(Path(_page): Path<Page>, Path(params): Path<Params>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(Pet {
+    biz_ok!(Pet {
         id: params.id,
         name: "Doggy".to_string(),
         tag: None,
@@ -145,7 +145,7 @@ pub async fn get_pet_name_list(Path(_page): Path<Page>, Path(params): Path<Param
 )]
 #[get(path = "/store/pet", group = "Store")]
 pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(Pet {
+    biz_ok!(Pet {
         id: query.id,
         name: "Doggy".to_string(),
         tag: None,
