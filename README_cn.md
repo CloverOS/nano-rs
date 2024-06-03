@@ -60,7 +60,7 @@ MSRV >= 1.66
 
 ## 快速开始
 
-### 路由自动生成
+### 路由注册自动生成
 
 - 添加构建依赖
 
@@ -149,7 +149,7 @@ cargo run -- --config etc/config.yaml
 
 - 之后，你只需要专注于编写你的业务逻辑代码；nano-rs 将自动生成路由并将它们注册到 axum，让你只专注于实现业务逻辑。
 
-### OpenApi 生成
+### Api文档生成
 
 - 添加构建依赖
 
@@ -235,7 +235,7 @@ cargo build
 cargo run -- --config etc/config.yaml
 ```
 
-### ApiInfo 生成
+### Api信息收集生成
 
 - 添加构建依赖
 
@@ -258,7 +258,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 - 这将在你的 `src/` 中生成 `api_info.rs`，用于收集你所有的api信息，你可以使用 `get_api_info()` 获取所有api信息。
 
-### SeaOrm Postgresql Doc Generation
+### SeaOrm从数据库生成postgresql注释
 - 因为SeaOrm不支持从postgresql读取注释到实体类，所以我们提供了一个工具来生成注释。
 - 添加构建依赖
 ```toml
