@@ -3,9 +3,9 @@ pub mod store;
 pub mod samoyed {
     use axum::extract::{Path, State};
 
+    use nano_rs::{biz_ok, get, post};
     use nano_rs::axum::errors::ServerError;
-    use nano_rs::axum::rest::{RestResp};
-    use nano_rs::{biz_err, biz_ok, get, post};
+    use nano_rs::axum::rest::RestResp;
 
     use crate::ServiceContext;
     use crate::types::pet::PetShower;
@@ -71,6 +71,7 @@ pub mod samoyed {
     )]
     #[get(path = "/samoyed/miss", group = "Samoyed")]
     pub async fn miss() -> Result<RestResp<String>, ServerError> {
-        biz_err!(520, "Already in heaven".to_string())
+        let _ = std::fs::read("pass")?;
+        biz_ok!("pass".to_string())
     }
 }

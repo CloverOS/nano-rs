@@ -2,17 +2,16 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::logger::LoggerConfig;
+use crate::config::logger::LogConfig;
 use crate::config::prometheus::PrometheusConfig;
 use crate::config::rpc::RpcConfig;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct RestConfig {
     /// server port
     pub port: u16,
     /// server name (for micro-server reserved)
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// server listening address
     pub host: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -21,42 +20,17 @@ pub struct RestConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// server connect timeout (second)
     pub time_out: Option<usize>,
-    #[serde(default = "default_base_path")]
     /// server base route path, "/v1" "/v2"
-    pub base_path: String,
-    #[serde(default = "default_log_req")]
-    /// enable log with request body,default true
-    pub log_req: bool,
-    #[serde(default = "default_log_resp")]
-    /// enable log with response body,default false
-    pub log_resp: bool,
-    #[serde(default = "default_logger")]
-    /// logger detail config
-    pub logger: LoggerConfig,
+    pub base_path: Option<String>,
+    /// log detail config
+    #[serde(default)]
+    pub log: LogConfig,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// rpc server config
     pub rpc: Option<HashMap<String, RpcConfig>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// prometheus config
     pub prometheus: Option<PrometheusConfig>,
-}
-
-impl Default for RestConfig {
-    fn default() -> Self {
-        RestConfig {
-            port: 8080,
-            name: "ApiServer".to_string(),
-            host: None,
-            mode: None,
-            time_out: None,
-            base_path: "".to_string(),
-            log_req: true,
-            log_resp: false,
-            logger: Default::default(),
-            rpc: None,
-            prometheus: Some(PrometheusConfig::default()),
-        }
-    }
 }
 
 impl RestConfig {
@@ -70,11 +44,10 @@ impl RestConfig {
         filter.push_str(&format!("{}=debug,", &self.name));
         filter.push_str(&format!("{}=debug,", "nano_rs_extra"));
         filter.push_str(&format!("{}=debug,", "hyper"));
-        for (k, v) in self.logger.logging.iter() {
-            filter.push_str(&format!("{}={},", k, v.level));
+        for (k, v) in self.log.logging.iter() {
+            filter.push_str(&format!("{}={},", k, v.clone().level.unwrap_or("debug".to_string())));
         }
         if !filter.is_empty() {
-            // 去掉末尾的逗号
             filter.pop();
         }
         filter
@@ -90,20 +63,4 @@ impl RestConfig {
         }
         Err(String::from("rpc config not found"))
     }
-}
-
-fn default_logger() -> LoggerConfig {
-    LoggerConfig { logging: Default::default(), enable_request_body_log: true }
-}
-
-fn default_base_path() -> String {
-    "".to_string()
-}
-
-fn default_log_req() -> bool {
-    true
-}
-
-fn default_log_resp() -> bool {
-    false
 }

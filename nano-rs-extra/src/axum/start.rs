@@ -14,7 +14,7 @@ use crate::axum::shutdown::shutdown_signal;
 /// #[tokio::main]
 /// async fn main() {
 ///     let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
-///     let _guard = nano_rs_core::tracing::init_tracing(&rest_config);
+///     let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
 ///     let service_context = ServiceContext {
 ///         rest_config: rest_config.clone(),
 ///     };
@@ -28,39 +28,28 @@ use crate::axum::shutdown::shutdown_signal;
 /// }
 /// ```
 pub async fn run(app: Router, service_config: nano_rs_core::config::rest::RestConfig) {
-    let app = match service_config.logger.enable_request_body_log {
-        true => {
-            app
-                .fallback(handler::not_page::handler_404)
-                .route_layer(axum::middleware::from_fn(
-                    middleware::trace::trace_http_with_request_body,
-                ))
-                .layer(SecureClientIpSource::ConnectInfo.into_extension())
-        }
-        false => {
-            app
-                .fallback(handler::not_page::handler_404)
-                .route_layer(axum::middleware::from_fn(
-                    middleware::trace::trace_http,
-                ))
-                .layer(SecureClientIpSource::ConnectInfo.into_extension())
-        }
-    };
-    let host: String;
-    if service_config.host.is_some() {
-        host = service_config.host.unwrap();
-    } else {
-        host = "127.0.0.1".to_string();
+    let log_request_body = service_config.log.enable_request_body_log.unwrap_or(true);
+    let log_req = service_config.log.log_req.unwrap_or(true);
+    let mut app = app.fallback(handler::not_page::handler_404);
+    if log_request_body {
+        app = app.route_layer(axum::middleware::from_fn(
+            middleware::trace::trace_http_with_request_body,
+        ));
+    } else if log_req {
+        app = app.route_layer(axum::middleware::from_fn(
+            middleware::trace::trace_http,
+        ));
     }
-    let listener = tokio::net::TcpListener::bind(host + ":" + service_config.port.to_string().as_str())
-        .await
-        .unwrap();
+    app = app.layer(SecureClientIpSource::ConnectInfo.into_extension());
+
+    let host = service_config.host.unwrap_or_else(|| "127.0.0.1".to_string());
+    let port = service_config.port.to_string();
+    let address = format!("{}:{}", host, port);
+    let listener = tokio::net::TcpListener::bind(address).await.unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
     let link = format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url, url);
     tracing::info!("listening on {}",link);
-    axum::serve(listener,
-                app.layer(tower_http::trace::TraceLayer::new_for_http())
-                    .into_make_service_with_connect_info::<std::net::SocketAddr>())
+    axum::serve(listener, app.layer(tower_http::trace::TraceLayer::new_for_http()).into_make_service_with_connect_info::<std::net::SocketAddr>())
         .with_graceful_shutdown(shutdown_signal())
         .await.unwrap();
 }

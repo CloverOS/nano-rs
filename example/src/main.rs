@@ -21,7 +21,7 @@ mod doc;
 #[tokio::main]
 async fn main() {
     let rest_config = init_config_with_cli::<RestConfig>();
-    let _guard = nano_rs::tracing::init_tracing(&rest_config);
+    let _guards = nano_rs::tracing::init_tracing(&rest_config);
     let service_context = ServiceContext {
         rest_config: rest_config.clone(),
     };
@@ -29,7 +29,7 @@ async fn main() {
     let app = Router::new()
         .merge(RapiDoc::with_openapi("/api-docs/openapi2.json", GenApi::openapi()).path("/doc"))
         .nest(
-            rest_config.base_path.as_str(),
+            rest_config.base_path.clone().unwrap_or("".to_string()).as_str(),
             get_routes(service_context.clone(), rest_config.clone()),
         );
     let app = app.layer(CorsLayer::new()
