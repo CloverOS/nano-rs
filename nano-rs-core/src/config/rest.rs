@@ -21,7 +21,8 @@ pub struct RestConfig {
     /// server connect timeout (second)
     pub time_out: Option<usize>,
     /// server base route path, "/v1" "/v2"
-    pub base_path: Option<String>,
+    #[serde(default = "default_base_path")]
+    pub base_path: String,
     /// log detail config
     #[serde(default)]
     pub log: LogConfig,
@@ -31,6 +32,10 @@ pub struct RestConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// prometheus config
     pub prometheus: Option<PrometheusConfig>,
+}
+
+fn default_base_path() -> String {
+    "".to_string()
 }
 
 impl RestConfig {

@@ -29,7 +29,7 @@ async fn main() {
     let app = Router::new()
         .merge(RapiDoc::with_openapi("/api-docs/openapi2.json", GenApi::openapi()).path("/doc"))
         .nest(
-            rest_config.base_path.clone().unwrap_or("".to_string()).as_str(),
+            rest_config.base_path.as_str(),
             get_routes(service_context.clone(), rest_config.clone()),
         );
     let app = app.layer(CorsLayer::new()
