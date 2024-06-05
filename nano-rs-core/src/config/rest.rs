@@ -6,6 +6,7 @@ use crate::config::logger::LogConfig;
 use crate::config::prometheus::PrometheusConfig;
 use crate::config::rpc::RpcConfig;
 
+/// rest service config
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct RestConfig {
     /// server port

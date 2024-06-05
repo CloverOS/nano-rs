@@ -9,6 +9,7 @@ pub mod logger;
 pub mod etcd;
 pub mod rpc;
 pub mod prometheus;
+pub mod redis;
 
 /// - 从路径加载配置文件
 /// - Load configuration file from config_path
