@@ -67,6 +67,9 @@ impl GenRoute for AxumGenRoute {
             for layer_crate in state.split(WITH_LAYER).skip(1).into_iter() {
                 let layer_state = self.extract_content(&layer_crate, "#{", "}").unwrap_or_default();
                 let mut layer_string = layer_crate.to_string().clone();
+                if layer_string.is_empty() {
+                    continue;
+                }
                 if !layer_state.is_empty() {
                     edit_state = state.replace("#{", "_").replace("}", "");
                     let state = format!("#{{{}}}", layer_state);
