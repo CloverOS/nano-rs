@@ -38,4 +38,4 @@ use utoipa::OpenApi;
     ),
     tags()
 )]
-pub(super) struct GenApi {}
+pub struct GenApi {}
