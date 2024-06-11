@@ -117,7 +117,7 @@ impl GenDoc for AxumGenDoc {
                     #(#tags_code)*
                 )
             )]
-            pub(super) struct GenApi{}
+            pub struct GenApi{}
         };
         let syntax_tree = syn::parse_file(doc_code.to_string().as_str()).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
