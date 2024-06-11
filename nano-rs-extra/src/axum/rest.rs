@@ -118,7 +118,7 @@ macro_rules! biz_ok {
     }};
 
     () => {
-        nano_rs::axum::rest::biz_ok(200, "Success".to_string())
+        nano_rs::axum::rest::biz_ok(200, ())
     };
 }
 
