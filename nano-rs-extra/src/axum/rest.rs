@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use axum::http::{header, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use bytes::{BufMut, BytesMut};
@@ -54,11 +55,11 @@ impl<T> IntoResponse for RestResp<T> where T: Serialize {
 ///    biz_err(500, "error".to_string())
 /// }
 /// ```
-pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
+pub fn biz_err<T, S>(code: i32, msg: S) -> Result<RestResp<T>, ServerError> where S: ToString + Display + std::fmt::Debug {
     tracing::error!("code: {} - {:#?}",code,msg);
     Ok(RestResp {
         code,
-        msg,
+        msg: msg.to_string(),
         data: None,
     })
 }
@@ -83,7 +84,7 @@ pub fn biz_err<T>(code: i32, msg: String) -> Result<RestResp<T>, ServerError> {
 ///   })
 /// }
 /// ```
-pub fn biz_ok<T>(code:i32,data: T) -> Result<RestResp<T>, ServerError> {
+pub fn biz_ok<T>(code: i32, data: T) -> Result<RestResp<T>, ServerError> {
     Ok(RestResp {
         code,
         msg: "Success".to_string(),
