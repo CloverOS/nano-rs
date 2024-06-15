@@ -1,7 +1,7 @@
 use axum::response::{IntoResponse, Response};
 use crate::axum::rest::RestResp;
 
-pub struct ServerError(anyhow::Error);
+pub struct ServerError(pub anyhow::Error);
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
