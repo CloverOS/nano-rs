@@ -61,7 +61,7 @@ impl GenDoc for AxumGenDoc {
         let mut struct_map_keys: Vec<_> = struct_map.keys().collect();
         struct_map_keys.sort();
         for key in struct_map_keys {
-            let type_path: TypePath = parse_str(key.as_str()).expect("Failed to parse type path");
+            let type_path: TypePath = parse_str(key.as_str()).expect(format!("Failed to parse type path -> {}", key.clone()).as_str());
             components_code.push(quote! {
                 #type_path
             });
@@ -196,12 +196,14 @@ impl AxumGenDoc {
             let sub_path = path.components().skip(position + 1);
 
             //gen crate path
-            let crate_path = sub_path.fold("crate".to_string(), |mut acc, comp| {
+            let mut crate_path = sub_path.fold("crate".to_string(), |mut acc, comp| {
                 let comp_str = comp.as_os_str().to_string_lossy();
                 acc.push_str("::");
                 acc.push_str(&comp_str);
                 acc
             });
+            // check mod.rs
+            crate_path = crate_path.replace("::mod.rs", "");
 
             // remove .rs
             if let Some(stripped_path) = crate_path.strip_suffix(".rs") {
