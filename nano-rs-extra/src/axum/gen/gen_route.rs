@@ -4,9 +4,12 @@ use std::path::PathBuf;
 
 use quote::__private::{Span, TokenStream};
 use quote::quote;
-use syn::{Attribute, ExprPath, FnArg, GenericArgument, Ident, ItemUse, parse_quote, parse_str, PathArguments, PathSegment, Type, TypePath};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
+use syn::{
+    parse_quote, parse_str, Attribute, Expr, ExprPath, FnArg, GenericArgument, Ident, ItemUse,
+    PathArguments, PathSegment, Type, TypePath,
+};
 
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenRoute;
@@ -22,7 +25,15 @@ const WITHOUT_STATE: &str = "without_state";
 pub struct AxumGenRoute {}
 
 impl GenRoute for AxumGenRoute {
-    fn gen_route(&self, _rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>) {
+    fn gen_route(
+        &self,
+        _rs_files: Vec<PathBuf>,
+        path_buf: PathBuf,
+        api_fns: HashMap<
+            String,
+            ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
+        >,
+    ) {
         eprintln!("AxumGenRoute gen_route in {:?}", path_buf);
         let routes = path_buf.join(self.get_routes_file_path());
         if !routes.exists() {
@@ -39,7 +50,8 @@ impl GenRoute for AxumGenRoute {
         use_crate_sort_key.sort();
         for key in use_crate_sort_key {
             let k = key;
-            let item_use: ItemUse = syn::parse_str(k).expect("Unable to parse the use crate code string");
+            let item_use: ItemUse =
+                syn::parse_str(k).expect("Unable to parse the use crate code string");
             use_code = parse_quote!(
                 #use_code
                 #item_use
@@ -65,7 +77,9 @@ impl GenRoute for AxumGenRoute {
             let ident = Ident::new(state_ident_str.as_str(), Span::call_site());
 
             for layer_crate in state.split(WITH_LAYER).skip(1).into_iter() {
-                let layer_state = self.extract_content(&layer_crate, "#{", "}").unwrap_or_default();
+                let layer_state = self
+                    .extract_content(&layer_crate, "#{", "}")
+                    .unwrap_or_default();
                 let mut layer_string = layer_crate.to_string().clone();
                 if layer_string.is_empty() {
                     continue;
@@ -74,50 +88,68 @@ impl GenRoute for AxumGenRoute {
                     edit_state = state.replace("#{", "_").replace("}", "");
                     let state = format!("#{{{}}}", layer_state);
                     layer_string = layer_string.replace(state.as_str(), "");
-                    let layer: ExprPath = parse_str(layer_string.as_str()).expect("Failed to parse path");
+                    let layer: ExprPath =
+                        parse_str(layer_string.as_str()).expect("Failed to parse path");
                     if !layer_state.eq(state_type) {
-                        let layer_state_type_path: TypePath = parse_str(layer_state.as_str()).expect("Failed to parse state type path");
+                        let layer_state_type_path: TypePath = parse_str(layer_state.as_str())
+                            .expect("Failed to parse state type path");
                         let ident_str = self.camel_to_snake(layer_state.replace("::", "").as_str());
                         let layer_ident = Ident::new(ident_str.as_str(), Span::call_site());
-                        layer_states_params_map.insert(ident_str.clone(), quote!(#layer_state_type_path));
+                        layer_states_params_map
+                            .insert(ident_str.clone(), quote!(#layer_state_type_path));
                         layers_code = parse_quote!(
-                                #layers_code
-                                .route_layer(axum::middleware::from_fn_with_state(
-                                    #layer_ident,#layer))
-                            );
-                        routes_params_code.insert(ident_str.clone(), quote!(#layer_state_type_path));
+                            #layers_code
+                            .route_layer(axum::middleware::from_fn_with_state(
+                                #layer_ident,#layer))
+                        );
+                        routes_params_code
+                            .insert(ident_str.clone(), quote!(#layer_state_type_path));
                     } else {
                         layers_code = parse_quote!(
-                                #layers_code
-                                .route_layer(axum::middleware::from_fn_with_state(
-                                    #ident.clone(),#layer))
-                            );
-                        let type_path: TypePath = parse_str(state_type).expect("Failed to parse state type path");
+                            #layers_code
+                            .route_layer(axum::middleware::from_fn_with_state(
+                                #ident.clone(),#layer))
+                        );
+                        let type_path: TypePath =
+                            parse_str(state_type).expect("Failed to parse state type path");
                         routes_params_code.insert(state_ident_str.clone(), quote!(#type_path));
                     }
                 } else {
-                    let layer: ExprPath = parse_str(layer_string.as_str()).expect("Failed to parse path");
-                    layers_code = parse_quote!(
-                                #layers_code
-                                .route_layer(axum::middleware::from_fn(#layer))
-                            );
+                    if let Ok(layer) = parse_str::<ExprPath>(layer_string.as_str()) {
+                        layers_code = parse_quote!(
+                            #layers_code
+                            .route_layer(axum::middleware::from_fn(#layer))
+                        );
+                    } else {
+                        let layer =
+                            parse_str::<Expr>(layer_string.as_str()).expect("layer parse failed");
+                        layers_code = parse_quote!(
+                            #layers_code
+                            .layer(#layer)
+                        );
+                    }
                 }
             }
             state = edit_state;
-            state = state.replace("#", "_").replace("::", "_");
+            state = state
+                .replace("#", "_")
+                .replace("::", "_")
+                .replace("(", "")
+                .replace(")", "")
+                .replace(".", "_");
             state = self.camel_to_snake(&state);
             let mut let_routes_code = quote!();
             let mut code_sort = code.clone();
             code_sort.sort_by(|a, b| {
-                let a_string = a.to_string(); // 这是一个假设的函数，需要你根据实际情况实现
+                let a_string = a.to_string();
                 let b_string = b.to_string();
                 a_string.cmp(&b_string)
             });
             for x in code_sort {
                 let_routes_code = parse_quote! {
-                        #let_routes_code
-                        #x
-                    };
+                    #let_routes_code
+                    #x
+                };
             }
             state = format!("get_routes_{}", state);
             let ident_fn_name = Ident::new(state.as_str(), Span::call_site());
@@ -133,7 +165,8 @@ impl GenRoute for AxumGenRoute {
             };
             //with state
             if !state_raw.starts_with(WITHOUT_STATE) {
-                let type_path: TypePath = parse_str(state_type).expect("Failed to parse state type path");
+                let type_path: TypePath =
+                    parse_str(state_type).expect("Failed to parse state type path");
                 routes_code = parse_quote!(
                     #routes_code
 
@@ -148,7 +181,8 @@ impl GenRoute for AxumGenRoute {
                     .merge(#ident_fn_name(#ident.clone(),#(#layer_states_params_ident.clone())*))
                 ));
                 routes_params_code.insert(state_ident_str.clone(), quote!(#type_path));
-            } else { //without state
+            } else {
+                //without state
                 routes_code = parse_quote!(
                     #routes_code
 
@@ -168,7 +202,9 @@ impl GenRoute for AxumGenRoute {
         keys.sort();
         for key in keys {
             let k = key.clone();
-            let v = routes_params_code.get(key).expect("Failed to get routes_params_code");
+            let v = routes_params_code
+                .get(key)
+                .expect("Failed to get routes_params_code");
             let ident = Ident::new(&k, Span::call_site());
             all_routes_params.push(quote!(#ident: #v));
         }
@@ -201,11 +237,11 @@ impl AxumGenRoute {
     }
 
     fn extract_content(&self, s: &str, start_delim: &str, end_delim: &str) -> Option<String> {
-        s.split(start_delim).nth(1)
+        s.split(start_delim)
+            .nth(1)
             .and_then(|part| part.split(end_delim).next())
             .map(|s| s.to_string())
     }
-
 
     fn camel_to_snake(&self, s: &str) -> String {
         let mut result = String::new();
@@ -247,8 +283,15 @@ impl AxumGenRoute {
         tp_vec
     }
 
-    fn parse_routes(&self, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>,
-                    fn_route_code: &mut HashMap<String, Vec<TokenStream>>, use_crate_map: &mut HashMap<String, bool>) {
+    fn parse_routes(
+        &self,
+        api_fns: HashMap<
+            String,
+            ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
+        >,
+        fn_route_code: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate_map: &mut HashMap<String, bool>,
+    ) {
         for (name, api_fn) in api_fns.iter() {
             let path = api_fn.clone().path;
             if let Some(inputs) = api_fn.inputs.clone() {
@@ -268,12 +311,27 @@ impl AxumGenRoute {
                                             //with state
                                             STATE => {
                                                 with_state = true;
-                                                let tp_vec = self.get_state_type_vec(&segment, vec![]);
+                                                let tp_vec =
+                                                    self.get_state_type_vec(&segment, vec![]);
                                                 for x in tp_vec {
-                                                    if let Some(use_crate) = api_fn.use_crate.clone() {
-                                                        if let Some(use_string) = self.get_full_crate_name(x, &use_crate) {
-                                                            let key = self.get_fn_code_key(api_fn, Some(use_string));
-                                                            self.insert_all_route(fn_route_code, use_crate_map, name, api_fn, &path, key);
+                                                    if let Some(use_crate) =
+                                                        api_fn.use_crate.clone()
+                                                    {
+                                                        if let Some(use_string) =
+                                                            self.get_full_crate_name(x, &use_crate)
+                                                        {
+                                                            let key = self.get_fn_code_key(
+                                                                api_fn,
+                                                                Some(use_string),
+                                                            );
+                                                            self.insert_all_route(
+                                                                fn_route_code,
+                                                                use_crate_map,
+                                                                name,
+                                                                api_fn,
+                                                                &path,
+                                                                key,
+                                                            );
                                                         }
                                                     }
                                                 }
@@ -296,37 +354,100 @@ impl AxumGenRoute {
             }
         }
     }
-    fn insert_all_route(&self, fn_route_code: &mut HashMap<String, Vec<TokenStream>>, use_crate_map: &mut HashMap<String, bool>, name: &String, api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>, path: &String, key: String) {
+    fn insert_all_route(
+        &self,
+        fn_route_code: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate_map: &mut HashMap<String, bool>,
+        name: &String,
+        api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
+        path: &String,
+        key: String,
+    ) {
         match api_fn.method.as_str() {
             "post" => {
-                self.post_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.post_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             "get" => {
-                self.get_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.get_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             "put" => {
-                self.put_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.put_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             "delete" => {
-                self.delete_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.delete_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             "patch" => {
-                self.patch_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.patch_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             "head" => {
-                self.head_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.head_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             "options" => {
-                self.options_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.options_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             "trace" => {
-                self.trace_insert(fn_route_code, use_crate_map, name.clone(), path.clone(), key);
+                self.trace_insert(
+                    fn_route_code,
+                    use_crate_map,
+                    name.clone(),
+                    path.clone(),
+                    key,
+                );
             }
             _ => {}
         }
     }
 
-    fn post_insert(&self, fn_route_code: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn post_insert(
+        &self,
+        fn_route_code: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::post;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_route_code.get_mut(&key) {
@@ -334,13 +455,23 @@ impl AxumGenRoute {
                 .route(#path,post(#ident_fn_name))
             ));
         } else {
-            fn_route_code.insert(key, vec![quote!(
-                .route(#path,post(#ident_fn_name))
-            )]);
+            fn_route_code.insert(
+                key,
+                vec![quote!(
+                    .route(#path,post(#ident_fn_name))
+                )],
+            );
         }
     }
 
-    fn get_insert(&self, fn_with_state: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn get_insert(
+        &self,
+        fn_with_state: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::get;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_with_state.get_mut(&key) {
@@ -348,13 +479,23 @@ impl AxumGenRoute {
                 .route(#path,get(#ident_fn_name))
             ));
         } else {
-            fn_with_state.insert(key, vec![quote!(
-                .route(#path,get(#ident_fn_name))
-            )]);
+            fn_with_state.insert(
+                key,
+                vec![quote!(
+                    .route(#path,get(#ident_fn_name))
+                )],
+            );
         }
     }
 
-    fn delete_insert(&self, fn_with_state: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn delete_insert(
+        &self,
+        fn_with_state: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::delete;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_with_state.get_mut(&key) {
@@ -362,13 +503,23 @@ impl AxumGenRoute {
                 .route(#path,delete(#ident_fn_name))
             ));
         } else {
-            fn_with_state.insert(key, vec![quote!(
-                .route(#path,delete(#ident_fn_name))
-            )]);
+            fn_with_state.insert(
+                key,
+                vec![quote!(
+                    .route(#path,delete(#ident_fn_name))
+                )],
+            );
         }
     }
 
-    fn patch_insert(&self, fn_with_state: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn patch_insert(
+        &self,
+        fn_with_state: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::patch;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_with_state.get_mut(&key) {
@@ -376,13 +527,23 @@ impl AxumGenRoute {
                 .route(#path,patch(#ident_fn_name))
             ));
         } else {
-            fn_with_state.insert(key, vec![quote!(
-                .route(#path,patch(#ident_fn_name))
-            )]);
+            fn_with_state.insert(
+                key,
+                vec![quote!(
+                    .route(#path,patch(#ident_fn_name))
+                )],
+            );
         }
     }
 
-    fn head_insert(&self, fn_with_state: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn head_insert(
+        &self,
+        fn_with_state: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::head;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_with_state.get_mut(&key) {
@@ -390,13 +551,23 @@ impl AxumGenRoute {
                 .route(#path,head(#ident_fn_name))
             ));
         } else {
-            fn_with_state.insert(key, vec![quote!(
-                .route(#path,head(#ident_fn_name))
-            )]);
+            fn_with_state.insert(
+                key,
+                vec![quote!(
+                    .route(#path,head(#ident_fn_name))
+                )],
+            );
         }
     }
 
-    fn options_insert(&self, fn_with_state: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn options_insert(
+        &self,
+        fn_with_state: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::options;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_with_state.get_mut(&key) {
@@ -404,13 +575,23 @@ impl AxumGenRoute {
                 .route(#path,options(#ident_fn_name))
             ));
         } else {
-            fn_with_state.insert(key, vec![quote!(
-                .route(#path,options(#ident_fn_name))
-            )]);
+            fn_with_state.insert(
+                key,
+                vec![quote!(
+                    .route(#path,options(#ident_fn_name))
+                )],
+            );
         }
     }
 
-    fn put_insert(&self, fn_with_state: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn put_insert(
+        &self,
+        fn_with_state: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::put;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_with_state.get_mut(&key) {
@@ -418,13 +599,23 @@ impl AxumGenRoute {
                 .route(#path,put(#ident_fn_name))
             ));
         } else {
-            fn_with_state.insert(key, vec![quote!(
-                .route(#path,put(#ident_fn_name))
-            )]);
+            fn_with_state.insert(
+                key,
+                vec![quote!(
+                    .route(#path,put(#ident_fn_name))
+                )],
+            );
         }
     }
 
-    fn trace_insert(&self, fn_with_state: &mut HashMap<String, Vec<TokenStream>>, use_crate: &mut HashMap<String, bool>, name: String, path: String, key: String) {
+    fn trace_insert(
+        &self,
+        fn_with_state: &mut HashMap<String, Vec<TokenStream>>,
+        use_crate: &mut HashMap<String, bool>,
+        name: String,
+        path: String,
+        key: String,
+    ) {
         use_crate.insert("use axum::routing::trace;".to_string(), true);
         let ident_fn_name: ExprPath = parse_str(name.as_str()).expect("Failed to parse path");
         if let Some(v) = fn_with_state.get_mut(&key) {
@@ -432,12 +623,19 @@ impl AxumGenRoute {
                 .route(#path,trace(#ident_fn_name))
             ));
         } else {
-            fn_with_state.insert(key, vec![quote!(
-                .route(#path,trace(#ident_fn_name))
-            )]);
+            fn_with_state.insert(
+                key,
+                vec![quote!(
+                    .route(#path,trace(#ident_fn_name))
+                )],
+            );
         }
     }
-    fn get_fn_code_key(&self, api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>, use_string: Option<String>) -> String {
+    fn get_fn_code_key(
+        &self,
+        api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
+        use_string: Option<String>,
+    ) -> String {
         let mut key;
         if let Some(use_string) = use_string {
             key = format!("{}", use_string.clone());
