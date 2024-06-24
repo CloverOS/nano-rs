@@ -45,8 +45,15 @@ pub fn init_tracing(rest_config: &RestConfig) -> Vec<WorkerGuard> {
         }
     }
 
+    let env_filter;
+    if let Some(level) = rest_config.log.level.clone() {
+        env_filter = tracing_subscriber::EnvFilter::from_default_env()
+            .add_directive(level.get_tracing_level().into());
+    } else {
+        env_filter = tracing_subscriber::EnvFilter::new(rest_config.get_env_filter());
+    }
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(rest_config.get_env_filter()))
+        .with(env_filter)
         .with(
             tracing_subscriber::fmt::layer()
                 .pretty()

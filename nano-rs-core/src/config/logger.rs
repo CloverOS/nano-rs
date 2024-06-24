@@ -141,6 +141,22 @@ impl Level {
             }
         }
     }
+
+    pub fn get_tracing_level(&self) -> tracing::Level {
+        if self.trace.is_some() {
+            tracing::Level::TRACE
+        } else if self.debug.is_some() {
+            tracing::Level::DEBUG
+        } else if self.info.is_some() {
+            tracing::Level::INFO
+        } else if self.warn.is_some() {
+            tracing::Level::WARN
+        } else if self.error.is_some() {
+            tracing::Level::ERROR
+        } else {
+            tracing::Level::DEBUG
+        }
+    }
 }
 
 pub const LOG_LEVEL: [&str; 5] = ["trace", "debug", "info", "warn", "error"];
