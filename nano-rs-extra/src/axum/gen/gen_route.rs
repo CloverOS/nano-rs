@@ -93,7 +93,7 @@ impl GenRoute for AxumGenRoute {
                     if !layer_state.eq(state_type) {
                         let layer_state_type_path: TypePath = parse_str(layer_state.as_str())
                             .expect("Failed to parse state type path");
-                        let ident_str = self.camel_to_snake(layer_state.replace("::", "").as_str());
+                        let ident_str = self.camel_to_snake(layer_state.replace("::", "_").as_str());
                         let layer_ident = Ident::new(ident_str.as_str(), Span::call_site());
                         layer_states_params_map
                             .insert(ident_str.clone(), quote!(#layer_state_type_path));
