@@ -24,6 +24,9 @@ pub struct RestConfig {
     /// server base route path, "/v1" "/v2"
     #[serde(default = "default_base_path")]
     pub base_path: String,
+    /// Request Body Limit, 250 * 1024 * 1024, /* 250mb */
+    #[serde(default = "default_body_limit")]
+    pub body_limit: usize,
     /// log detail config
     #[serde(default)]
     pub log: LogConfig,
@@ -33,6 +36,10 @@ pub struct RestConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// prometheus config
     pub prometheus: Option<PrometheusConfig>,
+}
+
+fn default_body_limit() -> usize {
+    4 * 1024 * 1024
 }
 
 fn default_base_path() -> String {
