@@ -10,13 +10,13 @@ use http_body_util::BodyExt;
 use serde::{Deserialize, Serialize};
 
 pub async fn trace_http(
-    secure_ip: SecureClientIp,
+    SecureClientIp(secure_ip): SecureClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let start = Instant::now();
 
-    let (method, path, ip) = (&req.method().to_string(), &req.uri().to_string(), secure_ip.0.to_string());
+    let (method, path, ip) = (&req.method().to_string(), &req.uri().to_string(), secure_ip.to_string());
     let res = next.run(req).await;
 
     let duration = start.elapsed();
@@ -53,9 +53,9 @@ pub async fn trace_http_with_request_body(
 }
 
 pub async fn req_log<B>(body: B, request_info: &mut RequestInfo) -> Result<Bytes, (StatusCode, String)>
-    where
-        B: axum::body::HttpBody<Data=Bytes>,
-        B::Error: std::fmt::Display,
+where
+    B: axum::body::HttpBody<Data=Bytes>,
+    B::Error: std::fmt::Display,
 {
     let bytes = match body.collect().await {
         Ok(collected) => collected.to_bytes(),
