@@ -1,4 +1,5 @@
 use axum::{Router};
+use axum_client_ip;
 use axum_client_ip::SecureClientIpSource;
 use crate::axum::{handler, middleware};
 use crate::axum::shutdown::shutdown_signal;
@@ -13,13 +14,15 @@ use crate::axum::shutdown::shutdown_signal;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
+///     use axum_client_ip::SecureClientIpSource;
+/// let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
 ///     let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
 ///     let service_context = ServiceContext {
 ///         rest_config: rest_config.clone(),
 ///     };
 ///     let app = Router::new();
-///     run(app, rest_config).await
+///     /// if use nginx proxy,you can use SecureClientIpSource::XRealIp
+///     run(app, rest_config, SecureClientIpSource::XRealIp).await
 /// }
 ///
 /// #[derive(Clone)]
@@ -27,7 +30,7 @@ use crate::axum::shutdown::shutdown_signal;
 ///     pub rest_config: RestConfig,
 /// }
 /// ```
-pub async fn run(app: Router, service_config: nano_rs_core::config::rest::RestConfig) {
+pub async fn run(app: Router, service_config: nano_rs_core::config::rest::RestConfig, sci: SecureClientIpSource) {
     let log_request_body = service_config.log.enable_request_body_log.unwrap_or(true);
     let log_req = service_config.log.log_req.unwrap_or(true);
     let mut app = app.fallback(handler::not_page::handler_404);
@@ -40,7 +43,7 @@ pub async fn run(app: Router, service_config: nano_rs_core::config::rest::RestCo
             middleware::trace::trace_http,
         ));
     }
-    app = app.layer(SecureClientIpSource::ConnectInfo.into_extension());
+    app = app.layer(sci.into_extension());
 
     let host = service_config.host.unwrap_or_else(|| "127.0.0.1".to_string());
     let port = service_config.port.to_string();
