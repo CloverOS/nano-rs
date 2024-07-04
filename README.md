@@ -112,6 +112,7 @@ cargo build
 
 ```rust
 use axum::Router;
+use axum_client_ip::SecureClientIpSource;
 use nano_rs::axum::start::run;
 use nano_rs::config::init_config_with_cli;
 use nano_rs::config::rest::RestConfig;
@@ -132,7 +133,8 @@ async fn main() {
         rest_config.base_path.as_str(),
         get_routes(service_context.clone(), rest_config.clone()),
     );
-    run(app, rest_config).await
+    /// if use nginx proxy,you can use SecureClientIpSource::XRealIp
+    run(app, rest_config, SecureClientIpSource::XRealIp).await
 }
 
 #[derive(Clone)]
