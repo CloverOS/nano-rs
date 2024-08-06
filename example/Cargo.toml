@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 nano-rs = { path = "../nano-rs" }
 axum = { workspace = true }
+axum-client-ip = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 tower-http = { workspace = true }

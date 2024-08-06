@@ -1,4 +1,5 @@
 use axum::Router;
+use axum_client_ip::SecureClientIpSource;
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_rapidoc::RapiDoc;
@@ -35,7 +36,7 @@ async fn main() {
     let app = app.layer(CorsLayer::new()
                             .allow_origin(Any)
                             .allow_methods(Any), );
-    run(app, rest_config).await
+    run(app, rest_config,SecureClientIpSource::ConnectInfo).await
 }
 
 
