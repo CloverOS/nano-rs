@@ -115,34 +115,30 @@ cargo build
 
 ```rust
 use axum::Router;
+use nano_rs_core::config::rest::RestConfig;
 use axum_client_ip::SecureClientIpSource;
-use nano_rs::axum::start::run;
-use nano_rs::config::init_config_with_cli;
-use nano_rs::config::rest::RestConfig;
-use crate::routes::get_routes;
-
-mod routes;
-mod layers;
-mod api;
 
 #[tokio::main]
 async fn main() {
-    let rest_config = init_config_with_cli::<RestConfig>();
-    let _guard = nano_rs::tracing::init_tracing(&rest_config);
-    let service_context = ServiceContext {
-        rest_config: rest_config.clone(),
-    };
-    let app = Router::new().nest(
-        rest_config.base_path.as_str(),
-        get_routes(service_context.clone(), rest_config.clone()),
-    );
-    /// if use nginx proxy,you can use SecureClientIpSource::XRealIp
-    run(app, rest_config, SecureClientIpSource::XRealIp).await
+
+  use nano_rs_extra::axum::start::AppStarter;
+  let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
+  let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
+  let service_context = ServiceContext {
+    rest_config: rest_config.clone(),
+  };
+  let app = Router::new();
+  AppStarter::new(app, rest_config)
+          .add_log_layer()
+          ///if use nginx proxy,you can use SecureClientIpSource::XRealIp
+          .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
+          .run()
+          .await;
 }
 
 #[derive(Clone)]
 pub struct ServiceContext {
-    pub rest_config: RestConfig,
+  pub rest_config: RestConfig,
 }
 ```
 

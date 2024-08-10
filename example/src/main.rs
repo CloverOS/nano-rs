@@ -3,8 +3,7 @@ use axum_client_ip::SecureClientIpSource;
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_rapidoc::RapiDoc;
-
-use nano_rs::axum::start::run;
+use nano_rs::axum::start::AppStarter;
 use nano_rs::config::init_config_with_cli;
 use nano_rs::config::rest::RestConfig;
 
@@ -36,7 +35,11 @@ async fn main() {
     let app = app.layer(CorsLayer::new()
                             .allow_origin(Any)
                             .allow_methods(Any), );
-    run(app, rest_config,SecureClientIpSource::ConnectInfo).await
+    AppStarter::new(app, rest_config)
+        .add_log_layer()
+        .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
+        .run()
+        .await;
 }
 
 
