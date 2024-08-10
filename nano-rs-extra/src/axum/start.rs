@@ -37,12 +37,11 @@ impl AppStarter {
     /// use axum::Router;
     /// use nano_rs_core::config::rest::RestConfig;
     /// use axum_client_ip::SecureClientIpSource;
+    /// use nano_rs_extra::axum::start::AppStarter;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///
-    /// use nano_rs_extra::axum::start::AppStarter;
-    /// let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
+    ///     let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
     ///     let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
     ///     let service_context = ServiceContext {
     ///         rest_config: rest_config.clone(),
@@ -80,12 +79,11 @@ impl AppStarter {
     /// use axum::Router;
     /// use nano_rs_core::config::rest::RestConfig;
     /// use axum_client_ip::SecureClientIpSource;
+    /// use nano_rs_extra::axum::start::AppStarter;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///
-    /// use nano_rs_extra::axum::start::AppStarter;
-    /// let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
+    ///     let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
     ///     let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
     ///     let service_context = ServiceContext {
     ///         rest_config: rest_config.clone(),

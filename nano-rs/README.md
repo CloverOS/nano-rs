@@ -117,11 +117,10 @@ cargo build
 use axum::Router;
 use nano_rs_core::config::rest::RestConfig;
 use axum_client_ip::SecureClientIpSource;
+use nano_rs_extra::axum::start::AppStarter;
 
 #[tokio::main]
 async fn main() {
-
-  use nano_rs_extra::axum::start::AppStarter;
   let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
   let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
   let service_context = ServiceContext {
@@ -129,11 +128,11 @@ async fn main() {
   };
   let app = Router::new();
   AppStarter::new(app, rest_config)
-          .add_log_layer()
-          ///if use nginx proxy,you can use SecureClientIpSource::XRealIp
-          .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
-          .run()
-          .await;
+      .add_log_layer()
+      ///if use nginx proxy,you can use SecureClientIpSource::XRealIp
+      .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
+      .run()
+      .await;
 }
 
 #[derive(Clone)]
