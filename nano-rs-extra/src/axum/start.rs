@@ -67,7 +67,7 @@ impl AppStarter {
         let url = format!("http://{}", listener.local_addr().unwrap());
         let link = format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url, url);
         tracing::info!("listening on {}",link);
-        axum::serve(listener, self.app.layer(tower_http::trace::TraceLayer::new_for_http())
+        axum::serve(listener, self.app
             .into_make_service_with_connect_info::<std::net::SocketAddr>())
             .with_graceful_shutdown(shutdown_signal())
             .await.unwrap();
@@ -134,6 +134,12 @@ impl AppStarter {
                                       .allow_headers(Any)
                                       .allow_origin(Any)
                                       .allow_methods(Any), );
+        self
+    }
+
+    /// add trace layer to axum app
+    pub fn add_trace_layer(mut self) -> Self {
+        self.app = self.app.layer(tower_http::trace::TraceLayer::new_for_http());
         self
     }
 
