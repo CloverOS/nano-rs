@@ -1,6 +1,7 @@
-use axum::response::{IntoResponse, Response};
 use crate::axum::rest::RestResp;
+use axum::response::{IntoResponse, Response};
 
+#[derive(Debug)]
 pub struct ServerError(pub anyhow::Error);
 
 impl IntoResponse for ServerError {
