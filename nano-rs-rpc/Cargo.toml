@@ -17,4 +17,4 @@ repository = "https://github.com/CloverOS/nano-rs"
 tonic = { workspace = true }
 etcd-client = { workspace = true }
 nano-rs-core = { path = "../nano-rs-core" }
-tower = "0.4.13"
+tower = { workspace = true }
