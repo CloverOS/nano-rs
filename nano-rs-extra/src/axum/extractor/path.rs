@@ -5,15 +5,12 @@ use axum::extract::rejection::PathRejection;
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use serde::de::DeserializeOwned;
+use crate::axum::extractor::Path;
 use crate::axum::rest::RestResp;
-
-// We define our own `Path` extractor that customizes the error from `axum::extract::Path`
-pub struct Path<T>(pub T);
 
 #[async_trait]
 impl<S, T> FromRequestParts<S> for Path<T>
     where
-    // these trait bounds are copied from `impl FromRequest for axum::extract::path::Path`
         T: DeserializeOwned + Send,
         S: Send + Sync,
 {
