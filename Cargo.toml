@@ -1,5 +1,5 @@
 [workspace]
-members = ["nano-rs", "nano-rs-build", "nano-rs-core", "nano-rs-rpc", "nano-rs-macro", "nano-rs-extra", "nano-rs-proc-macro-route", "example"]
+members = ["nano-rs", "nano-rs-build", "nano-rs-core", "nano-rs-macro", "nano-rs-extra", "nano-rs-proc-macro-route", "example"]
 resolver = "2"
 
 [workspace.dependencies]

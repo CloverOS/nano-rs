@@ -3,7 +3,7 @@ use axum::extract::{Query, State};
 
 use nano_rs::{biz_err, biz_ok, get, post};
 use nano_rs::axum::errors::ServerError;
-use nano_rs::axum::extractor::path::Path;
+use nano_rs::axum::extractor::Path;
 use nano_rs::axum::rest::{RestResp};
 use nano_rs::config::rest::RestConfig;
 
