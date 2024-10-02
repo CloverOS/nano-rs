@@ -13,12 +13,16 @@ pub struct DataBaseConfig {
     pub logging_level: isize,
     #[serde(default = "default_config")]
     pub config: String,
-    /// 空闲中的最大连接数
+    /// Maximum number of idle connections 空闲中的最大连接数
     #[serde(default = "default_max_idle_conns")]
     pub max_idle_conns: u32,
-    /// 打开到数据库的最大连接数
+    /// Maximum number of connections opened to the database 打开到数据库的最大连接数
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
+    /// The maximum amount of time to wait for a new connection to be created. If this timeout is reached, an error will be returned. Defaults to 30 seconds.
+    pub acquire_timeout: Option<u64>,
+    /// The maximum amount of time to wait for a connection to be established. If this timeout is reached, an error will be returned. Defaults to 10 seconds.
+    pub connect_timeout: Option<u64>,
 }
 
 fn default_sqlx_logging() -> bool {

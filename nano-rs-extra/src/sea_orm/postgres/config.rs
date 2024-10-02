@@ -1,6 +1,7 @@
 use log::LevelFilter;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use nano_rs_core::config::db::DataBaseConfig;
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
+use std::time::Duration;
 
 ///获取数据库链接配置
 fn get_con_config(data_base_config: &DataBaseConfig) -> ConnectOptions {
@@ -8,10 +9,7 @@ fn get_con_config(data_base_config: &DataBaseConfig) -> ConnectOptions {
     let url = if data_base_config.config.is_empty() {
         format!(
             "postgres://{}:{}@{}/{}",
-            data_base_config.username,
-            data_base_config.password,
-            host,
-            data_base_config.database
+            data_base_config.username, data_base_config.password, host, data_base_config.database
         )
     } else {
         format!(
@@ -25,6 +23,12 @@ fn get_con_config(data_base_config: &DataBaseConfig) -> ConnectOptions {
     };
     let mut opt = ConnectOptions::new(url.to_owned());
     opt.max_connections(data_base_config.max_open_conns)
+        .acquire_timeout(Duration::from_secs(
+            data_base_config.acquire_timeout.unwrap_or(30),
+        ))
+        .connect_timeout(Duration::from_secs(
+            data_base_config.connect_timeout.unwrap_or(10),
+        ))
         .sqlx_logging(data_base_config.sqlx_logging);
     match data_base_config.logging_level {
         1 => {
