@@ -3,10 +3,14 @@ use std::fs;
 use std::path::PathBuf;
 
 use quote::{quote, ToTokens};
-use syn::{Attribute, FnArg, Item, ItemMod, ItemStruct, ItemUse, Meta, parse_str, TypePath};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use utoipa::openapi::{Contact, ExternalDocs, Info, License, Object, SecurityRequirement, Server, Tag};
+use syn::{
+    parse_str, Attribute, FnArg, Item, ItemEnum, ItemMod, ItemStruct, ItemUse, Meta, TypePath,
+};
+use utoipa::openapi::{
+    Contact, ExternalDocs, Info, License, Object, SecurityRequirement, Server, Tag,
+};
 
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenDoc;
@@ -22,13 +26,20 @@ pub struct AxumGenDoc {
     pub extensions: Object,
 }
 
-
 impl GenDoc for AxumGenDoc {
-    fn gen_doc(&self, rs_files: Vec<PathBuf>, path_buf: PathBuf, api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>,
-        Vec<ItemUse>, Vec<Attribute>>>) {
+    fn gen_doc(
+        &self,
+        rs_files: Vec<PathBuf>,
+        path_buf: PathBuf,
+        api_fns: HashMap<
+            String,
+            ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
+        >,
+    ) {
         eprintln!("AxumGenRoute gen_doc in {:?}", path_buf);
         let mut struct_map: HashMap<String, ItemStruct> = HashMap::new();
-        self.parse_to_schema_struct_map(&mut struct_map, rs_files);
+        let mut enum_map: HashMap<String, ItemEnum> = HashMap::new();
+        self.parse_to_schema(&mut struct_map, &mut enum_map, rs_files);
         let docs = path_buf.join(self.get_doc_file_path());
         if !docs.exists() {
             fs::write(docs.as_path(), "").expect("create routes files error");
@@ -40,10 +51,11 @@ impl GenDoc for AxumGenDoc {
         for fn_name in api_fns_keys {
             if let Some(api_fn) = api_fns.get(fn_name) {
                 if self.is_utoipa_marco(api_fn) {
-                    let type_path: TypePath = parse_str(fn_name.as_str()).expect("Failed to parse type path");
+                    let type_path: TypePath =
+                        parse_str(fn_name.as_str()).expect("Failed to parse type path");
                     fns_code.push(quote! {
-                    #type_path
-                });
+                        #type_path
+                    });
                 }
             }
         }
@@ -61,7 +73,17 @@ impl GenDoc for AxumGenDoc {
         let mut struct_map_keys: Vec<_> = struct_map.keys().collect();
         struct_map_keys.sort();
         for key in struct_map_keys {
-            let type_path: TypePath = parse_str(key.as_str()).expect(format!("Failed to parse type path -> {}", key.clone()).as_str());
+            let type_path: TypePath = parse_str(key.as_str())
+                .expect(format!("Failed to parse type path -> {}", key.clone()).as_str());
+            components_code.push(quote! {
+                #type_path
+            });
+        }
+        let mut enum_map_keys: Vec<_> = enum_map.keys().collect();
+        enum_map_keys.sort();
+        for key in enum_map_keys {
+            let type_path: TypePath = parse_str(key.as_str())
+                .expect(format!("Failed to parse type path -> {}", key.clone()).as_str());
             components_code.push(quote! {
                 #type_path
             });
@@ -71,10 +93,34 @@ impl GenDoc for AxumGenDoc {
         let description = &self.info.description.clone().unwrap_or("".to_string());
         let version = &self.info.version.clone();
         let license_name = &self.info.license.clone().unwrap_or(License::default()).name;
-        let license_url = &self.info.license.clone().unwrap_or(License::default()).url.unwrap_or("".to_string());
-        let contact_name = &self.info.contact.clone().unwrap_or(Contact::default()).name.unwrap_or("".to_string());
-        let contact_email = &self.info.contact.clone().unwrap_or(Contact::default()).email.unwrap_or("".to_string());
-        let contact_url = &self.info.contact.clone().unwrap_or(Contact::default()).url.unwrap_or("".to_string());
+        let license_url = &self
+            .info
+            .license
+            .clone()
+            .unwrap_or(License::default())
+            .url
+            .unwrap_or("".to_string());
+        let contact_name = &self
+            .info
+            .contact
+            .clone()
+            .unwrap_or(Contact::default())
+            .name
+            .unwrap_or("".to_string());
+        let contact_email = &self
+            .info
+            .contact
+            .clone()
+            .unwrap_or(Contact::default())
+            .email
+            .unwrap_or("".to_string());
+        let contact_url = &self
+            .info
+            .contact
+            .clone()
+            .unwrap_or(Contact::default())
+            .url
+            .unwrap_or("".to_string());
         let info_code = quote! {
             info(
                 title = #title,
@@ -136,7 +182,12 @@ impl AxumGenDoc {
         AxumGenDocBuilder::default()
     }
 
-    fn parse_to_schema_struct_map(&self, struct_map: &mut HashMap<String, ItemStruct>, rs_files: Vec<PathBuf>) {
+    fn parse_to_schema(
+        &self,
+        struct_map: &mut HashMap<String, ItemStruct>,
+        enum_map: &mut HashMap<String, ItemEnum>,
+        rs_files: Vec<PathBuf>,
+    ) {
         for rs_file in rs_files {
             let src = fs::read_to_string(rs_file.clone()).expect("read file error");
             let syntax_tree = syn::parse_file(&src).expect("parse file error");
@@ -147,16 +198,57 @@ impl AxumGenDoc {
                             if attr.path().is_ident("derive") {
                                 if let Meta::List(meta_list) = &attr.meta {
                                     //derive ToSchema
-                                    if meta_list.tokens.to_token_stream().to_string().contains("ToSchema") {
-                                        struct_map.insert(format!("{}::{}", self.parse_path_to_crate(&rs_file), item_struct.ident.to_string()), item_struct
-                                            .clone());
+                                    if meta_list
+                                        .tokens
+                                        .to_token_stream()
+                                        .to_string()
+                                        .contains("ToSchema")
+                                    {
+                                        struct_map.insert(
+                                            format!(
+                                                "{}::{}",
+                                                self.parse_path_to_crate(&rs_file),
+                                                item_struct.ident.to_string()
+                                            ),
+                                            item_struct.clone(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Item::Enum(item_enum) => {
+                        for attr in item_enum.attrs.iter() {
+                            if attr.path().is_ident("derive") {
+                                if let Meta::List(meta_list) = &attr.meta {
+                                    //derive ToSchema
+                                    if meta_list
+                                        .tokens
+                                        .to_token_stream()
+                                        .to_string()
+                                        .contains("ToSchema")
+                                    {
+                                        enum_map.insert(
+                                            format!(
+                                                "{}::{}",
+                                                self.parse_path_to_crate(&rs_file),
+                                                item_enum.ident.to_string()
+                                            ),
+                                            item_enum.clone(),
+                                        );
                                     }
                                 }
                             }
                         }
                     }
                     Item::Mod(item_mod) => {
-                        self.parse_to_schema_struct_map_in_mod(struct_map, &rs_file, &item_mod, item_mod.ident.to_string());
+                        self.parse_to_schema_in_mod(
+                            struct_map,
+                            enum_map,
+                            &rs_file,
+                            &item_mod,
+                            item_mod.ident.to_string(),
+                        );
                     }
                     _ => {}
                 }
@@ -164,20 +256,69 @@ impl AxumGenDoc {
         }
     }
 
-    fn parse_to_schema_struct_map_in_mod(&self, struct_map: &mut HashMap<String, ItemStruct>, rs_file: &PathBuf, item_mod: &ItemMod, mod_name: String) {
+    fn parse_to_schema_in_mod(
+        &self,
+        struct_map: &mut HashMap<String, ItemStruct>,
+        enum_map: &mut HashMap<String, ItemEnum>,
+        rs_file: &PathBuf,
+        item_mod: &ItemMod,
+        mod_name: String,
+    ) {
         for content in item_mod.content.iter() {
             for item in content.clone().1.iter() {
                 match item {
-                    Item::Mod(item_mod) => {
-                        self.parse_to_schema_struct_map_in_mod(struct_map, rs_file, item_mod, format!("{}::{}", mod_name, item_mod.ident.to_string()))
-                    }
+                    Item::Mod(item_mod) => self.parse_to_schema_in_mod(
+                        struct_map,
+                        enum_map,
+                        rs_file,
+                        item_mod,
+                        format!("{}::{}", mod_name, item_mod.ident.to_string()),
+                    ),
                     Item::Struct(item_struct) => {
                         for attr in item_struct.attrs.iter() {
                             if attr.path().is_ident("derive") {
                                 if let Meta::List(meta_list) = &attr.meta {
                                     //derive ToSchema
-                                    if meta_list.tokens.to_token_stream().to_string().contains("ToSchema") {
-                                        struct_map.insert(format!("{}::{}::{}", self.parse_path_to_crate(rs_file), mod_name, item_struct.ident.to_string()), item_struct.clone());
+                                    if meta_list
+                                        .tokens
+                                        .to_token_stream()
+                                        .to_string()
+                                        .contains("ToSchema")
+                                    {
+                                        struct_map.insert(
+                                            format!(
+                                                "{}::{}::{}",
+                                                self.parse_path_to_crate(rs_file),
+                                                mod_name,
+                                                item_struct.ident.to_string()
+                                            ),
+                                            item_struct.clone(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Item::Enum(item_enum) => {
+                        for attr in item_enum.attrs.iter() {
+                            if attr.path().is_ident("derive") {
+                                if let Meta::List(meta_list) = &attr.meta {
+                                    //derive ToSchema
+                                    if meta_list
+                                        .tokens
+                                        .to_token_stream()
+                                        .to_string()
+                                        .contains("ToSchema")
+                                    {
+                                        enum_map.insert(
+                                            format!(
+                                                "{}::{}::{}",
+                                                self.parse_path_to_crate(rs_file),
+                                                mod_name,
+                                                item_enum.ident.to_string()
+                                            ),
+                                            item_enum.clone(),
+                                        );
                                     }
                                 }
                             }
@@ -216,7 +357,10 @@ impl AxumGenDoc {
         }
     }
 
-    fn is_utoipa_marco(&self, api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>) -> bool {
+    fn is_utoipa_marco(
+        &self,
+        api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
+    ) -> bool {
         if let Some(attrs) = &api_fn.attrs {
             for attr in attrs {
                 if attr.path().to_token_stream().to_string().contains("utoipa") {
