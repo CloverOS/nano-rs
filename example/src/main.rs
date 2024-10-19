@@ -37,7 +37,7 @@ async fn main() {
                             .allow_methods(Any), );
     AppStarter::new(app, rest_config)
         .add_log_layer()
-        .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
+        .add_secure_client_ip_source_layer(SecureClientIpSource::ConnectInfo)
         .run()
         .await;
 }

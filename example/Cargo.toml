@@ -16,7 +16,7 @@ utoipa = { version = "4.2.3", features = ["axum_extras"] }
 utoipa-rapidoc = { version = "4.0.0", features = ["axum"] }
 
 
-sea-orm = { version = "0.12.15", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
+sea-orm = { version = "1.1.0", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
 
 
 [build-dependencies]
