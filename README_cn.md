@@ -152,9 +152,9 @@ cargo run -- --config etc/config.yaml
 
 ```toml
 [build-dependencies]
-nano-rs = "0.1.3"
+nano-rs = { version = "0.1.3", features = ["utoipa_axum"] }
 nano-rs-build = "0.1.2"
-utoipa = { version = "4.2.3", features = ["axum_extras"] }
+utoipa = { version = "5.1.1", features = ["axum_extras"] }
 ```
 
 - 在 build.rs 中添加生成组件
@@ -204,7 +204,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         (status = 200, body = Pet)
     )
 )]
-#[get(path = "/store/pet", group = "Store")]
+#[get()]
 pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> {
     biz_ok(Pet {
         id: query.id,
@@ -216,6 +216,7 @@ pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestRes
 }
 ```
 
+- 如果启用了 utoipa_axum 特性，则不需要重复编写path和group等代码（除非需要一个中间层），只需编写 utoipa 代码，即可获取 openapi 文档和 axum 路由。
 - 运行一次构建（只需要对项目的第一次编译）
 
 ```shell

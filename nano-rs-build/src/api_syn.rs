@@ -12,7 +12,7 @@ pub mod api_key_word {
 }
 
 pub struct ApiMacroInfo {
-    pub path_token: PathToken,
+    pub path_token: Option<PathToken>,
     pub path_group_token: Option<PathGroupToken>,
     pub layers_token: Option<LayersToken>,
     pub group_token: Option<GroupToken>,
@@ -28,9 +28,7 @@ impl Parse for ApiMacroInfo {
         let mut group_token = None;
         let mut api_token = None;
         let mut open_token = None;
-        // 循环解析输入流，直到到达输入的末尾
         while !input.is_empty() {
-            // 使用前瞻来检测接下来是否是 `path` 或 `layers`
             let lookahead = input.lookahead1();
             if lookahead.peek(api_key_word::path) {
                 if path_token.is_some() {
@@ -72,12 +70,8 @@ impl Parse for ApiMacroInfo {
             }
         }
 
-        // 确保path已经定义
-        if path_token.is_none() {
-            return Err(input.error("Missing 'path'"));
-        }
         Ok(ApiMacroInfo {
-            path_token: path_token.unwrap(),
+            path_token,
             path_group_token,
             layers_token,
             group_token,

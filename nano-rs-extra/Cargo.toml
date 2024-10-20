@@ -28,7 +28,7 @@ hyper = { workspace = true }
 http-body-util = { workspace = true }
 axum-client-ip = { workspace = true }
 
-sea-orm = { version = "1.1.0", features = ["sqlx-mysql", "sqlx-postgres","runtime-tokio-rustls", "macros"] }
+sea-orm = { version = "1.1.0", features = ["sqlx-mysql", "sqlx-postgres", "runtime-tokio-rustls", "macros"] }
 log = "0.4.20"
 
 
@@ -44,5 +44,8 @@ bytes = "1.5.0"
 mime = "0.3.17"
 proc-macro2 = "1.0.79"
 
-utoipa = { version = "4.2.3", features = ["axum_extras"] }
+utoipa = { version = "5.1.1", features = ["axum_extras"] }
 regex = "1.10.4"
+
+[features]
+utoipa_axum = []

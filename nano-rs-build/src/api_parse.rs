@@ -108,34 +108,20 @@ pub fn parse_fn_item_in_mod(fns: &mut HashMap<String, ApiFn<String, Punctuated<F
 }
 
 pub fn parse_fn_item(item_fn: &ItemFn, path_buf: PathBuf, mod_name: Option<&str>) -> Result<Option<(String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>)>, Box<dyn Error>> {
-    let fn_full_crate_path;
     //获取函数上的标记宏
+    const METHODS: [&str; 8] = ["post", "get", "put", "delete", "patch", "options", "head", "trace"];
     for attr in &item_fn.attrs {
         let meta = &attr.meta;
         if let Ok(meta_list) = meta.require_list() {
             let path = &meta_list.path;
-            if path.is_ident("post") {
-                let api_fn = parse_api_info(item_fn, attr, "post")?;
-                fn_full_crate_path =
-                    gen_fn_full_crate_path(&path_buf, api_fn.api_fn_name.clone(), mod_name);
-                return Ok(Some((fn_full_crate_path, api_fn)));
-            } else if path.is_ident("get") {
-                let api_fn = parse_api_info(item_fn, attr, "get")?;
-                fn_full_crate_path =
-                    gen_fn_full_crate_path(&path_buf, api_fn.api_fn_name.clone(), mod_name);
-                return Ok(Some((fn_full_crate_path, api_fn)));
-            } else if path.is_ident("put") {
-                let api_fn = parse_api_info(item_fn, attr, "put")?;
-                fn_full_crate_path =
-                    gen_fn_full_crate_path(&path_buf, api_fn.api_fn_name.clone(), mod_name);
-                return Ok(Some((fn_full_crate_path, api_fn)));
-            } else if path.is_ident("delete") {
-                let api_fn = parse_api_info(item_fn, attr, "delete")?;
-                fn_full_crate_path =
-                    gen_fn_full_crate_path(&path_buf, api_fn.api_fn_name.clone(), mod_name);
-                return Ok(Some((fn_full_crate_path, api_fn)));
-            } else {
-                //others
+            if let Some(ident) = path.get_ident() {
+                let method = ident.to_string();
+                if METHODS.contains(&method.as_str()) {
+                    let api_fn = parse_api_info(item_fn, attr, method.as_str())?;
+                    let fn_full_crate_path =
+                        gen_fn_full_crate_path(&path_buf, api_fn.api_fn_name.clone(), mod_name);
+                    return Ok(Some((fn_full_crate_path, api_fn)));
+                }
             }
         }
     }
@@ -167,7 +153,11 @@ pub fn parse_api_info(item_fn: &ItemFn, attr: &Attribute, method: &str) -> Resul
             Some(layers)
         },
         inputs: Some(item_fn.sig.inputs.clone()),
-        path: api_macro_info.path_token.value_token.value(),
+        path: if let Some(path) = api_macro_info.path_token {
+            path.value_token.value()
+        } else {
+            "".to_string()
+        },
         path_group: if let Some(path_group) = api_macro_info.path_group_token {
             path_group.value_token.value()
         } else {

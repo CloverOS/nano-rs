@@ -21,7 +21,7 @@ pub async fn auth_token(State(_svc): State<ServiceContext>,request: Request, nex
 
 pub async fn auth_token1(request: Request, next: Next) -> Result<Response, impl IntoResponse> {
     //todo token verify things...
-    if true {
+    if false {
         Ok(next.run(request).await)
     }else{
         return Err(RestResp::<()> {

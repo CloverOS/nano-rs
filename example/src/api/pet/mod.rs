@@ -19,9 +19,7 @@ pub mod samoyed {
             (status = 200, body = PetShower)
         )
     )]
-    #[post(
-        path = "/samoyed/shower", group = "Samoyed", layers = ["crate::layers::auth::auth_token#{crate::ServiceContext}", "crate::layers::auth::auth_token1"]
-    )]
+    #[post(layers = ["crate::layers::auth::auth_token#{crate::ServiceContext}", "crate::layers::auth::auth_token1"])]
     pub async fn shower(State(_svc): State<ServiceContext>) -> Result<RestResp<PetShower>, ServerError> {
         biz_ok!(PetShower {
             name: "mantou".to_string(),
@@ -38,7 +36,7 @@ pub mod samoyed {
             (status = 200, body = String)
         )
     )]
-    #[get(path = "/samoyed/name", group = "Samoyed")]
+    #[get()]
     pub async fn name(State(_svc): State<ServiceContext>) -> Result<RestResp<String>, ServerError> {
         biz_ok!("mantou".to_string())
     }
@@ -55,7 +53,7 @@ pub mod samoyed {
             (status = 200, body = String)
         )
     )]
-    #[get(path = "/samoyed/:name", group = "Samoyed")]
+    #[get()]
     pub async fn hello(Path(name): Path<String>, State(_svc): State<ServiceContext>) -> Result<RestResp<String>, ServerError> {
         biz_ok!(name)
     }
@@ -69,7 +67,7 @@ pub mod samoyed {
             (status = 200)
         )
     )]
-    #[get(path = "/samoyed/miss", group = "Samoyed")]
+    #[get()]
     pub async fn miss() -> Result<RestResp<String>, ServerError> {
         let _ = std::fs::read("pass")?;
         biz_ok!("pass".to_string())
