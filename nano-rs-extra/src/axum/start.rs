@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use axum::extract::Request;
 use axum::response::IntoResponse;
-use axum::Router;
 use axum::routing::Route;
+use axum::Router;
 use axum_client_ip;
 use axum_client_ip::SecureClientIpSource;
 use tower::{Layer, Service};
@@ -12,8 +12,8 @@ use tower_http::cors::{Any, CorsLayer};
 
 use nano_rs_core::config::rest::RestConfig;
 
-use crate::axum::{handler, middleware};
 use crate::axum::shutdown::shutdown_signal;
+use crate::axum::{handler, middleware};
 
 /// AppStarter
 pub struct AppStarter {
@@ -60,17 +60,25 @@ impl AppStarter {
     /// }
     /// ```
     pub async fn run(self) {
-        let host = self.rest_config.host.clone().unwrap_or_else(|| "127.0.0.1".to_string());
+        let host = self
+            .rest_config
+            .host
+            .clone()
+            .unwrap_or_else(|| "127.0.0.1".to_string());
         let port = self.rest_config.port.clone().to_string();
         let address = format!("{}:{}", host, port);
         let listener = tokio::net::TcpListener::bind(address).await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
         let link = format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url, url);
-        tracing::info!("listening on {}",link);
-        axum::serve(listener, self.app
-            .into_make_service_with_connect_info::<std::net::SocketAddr>())
-            .with_graceful_shutdown(shutdown_signal())
-            .await.unwrap();
+        tracing::info!("listening on {}", link);
+        axum::serve(
+            listener,
+            self.app
+                .into_make_service_with_connect_info::<std::net::SocketAddr>(),
+        )
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
     }
 
     /// run service with dev mode(all cors allowed)
@@ -98,27 +106,46 @@ impl AppStarter {
     /// }
     /// ```
     pub async fn run_dev(self) {
-        self
-            .add_log_layer()
+        self.add_log_layer()
             .add_secure_client_ip_source_layer(SecureClientIpSource::ConnectInfo)
             .add_dev_cors_layer()
-            .run().await;
+            .run()
+            .await;
     }
 
     /// add log layer to axum app
     pub fn add_log_layer(mut self) -> Self {
-        let log_request_body = self.rest_config.log.enable_request_body_log.clone().unwrap_or(true);
+        let log_request_body = self
+            .rest_config
+            .log
+            .enable_request_body_log
+            .clone()
+            .unwrap_or(true);
+        let log_response_body = self
+            .rest_config
+            .log
+            .enable_response_body_log
+            .clone()
+            .unwrap_or(false);
         let log_req = self.rest_config.log.log_req.clone().unwrap_or(true);
         let app = self.app.clone().fallback(handler::not_page::handler_404);
-        if log_request_body {
-            self.app = app.route_layer(axum::middleware::from_fn(
-                middleware::trace::trace_http_with_request_body,
-            ));
-        } else if log_req {
-            self.app = app.route_layer(axum::middleware::from_fn(
-                middleware::trace::trace_http,
-            ));
-        }
+        self.app = if log_req {
+            if log_request_body {
+                if log_response_body {
+                    app.route_layer(axum::middleware::from_fn(
+                        middleware::trace::trace_http_with_request_body_and_response_body,
+                    ))
+                } else {
+                    app.route_layer(axum::middleware::from_fn(
+                        middleware::trace::trace_http_with_request_body,
+                    ))
+                }
+            } else {
+                app.route_layer(axum::middleware::from_fn(middleware::trace::trace_http))
+            }
+        } else {
+            self.app
+        };
         self
     }
 
@@ -130,16 +157,20 @@ impl AppStarter {
 
     /// add all allowed cors layer to axum app(dev mode)
     pub fn add_dev_cors_layer(mut self) -> Self {
-        self.app = self.app.layer(CorsLayer::new()
-                                      .allow_headers(Any)
-                                      .allow_origin(Any)
-                                      .allow_methods(Any), );
+        self.app = self.app.layer(
+            CorsLayer::new()
+                .allow_headers(Any)
+                .allow_origin(Any)
+                .allow_methods(Any),
+        );
         self
     }
 
     /// add trace layer to axum app
     pub fn add_trace_layer(mut self) -> Self {
-        self.app = self.app.layer(tower_http::trace::TraceLayer::new_for_http());
+        self.app = self
+            .app
+            .layer(tower_http::trace::TraceLayer::new_for_http());
         self
     }
 

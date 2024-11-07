@@ -8,6 +8,8 @@ pub struct LogConfig {
     pub log_req: Option<bool>,
     /// enable log request body,default false
     pub enable_request_body_log: Option<bool>,
+    /// enable log response body,default false
+    pub enable_response_body_log: Option<bool>,
     /// tracing env filter
     #[serde(default = "default_logging")]
     pub logging: HashMap<String, LogLevel>,
