@@ -26,7 +26,7 @@ pub struct DataBaseConfig {
 }
 
 fn default_sqlx_logging() -> bool {
-    true
+    false
 }
 
 fn default_logging_level() -> isize {
