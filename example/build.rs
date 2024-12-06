@@ -5,7 +5,7 @@ use utoipa::openapi::{ContactBuilder, InfoBuilder, ServerBuilder};
 use nano_rs::axum::gen::gen_api_info::AxumGenApiInfo;
 use nano_rs::axum::gen::gen_doc::AxumGenDoc;
 use nano_rs::axum::gen::gen_route::AxumGenRoute;
-use nano_rs_build::core::NanoBuilder;
+use nano_rs::core::NanoBuilder;
 
 fn main() -> Result<(), Box<dyn Error>> {
     NanoBuilder::new(None)

@@ -20,6 +20,7 @@ nano-rs-core = { path = "../nano-rs-core", version = "0.1.2" }
 nano-rs-macro = { path = "../nano-rs-macro", version = "0.1.0" }
 nano-rs-extra = { path = "../nano-rs-extra", version = "0.1.4" }
 nano-rs-proc-macro-route = { path = "../nano-rs-proc-macro-route", version = "0.1.0" }
+nano-rs-build = { path = "../nano-rs-build", version = "0.1.2" }
 
 [features]
 utoipa_axum = ["nano-rs-extra/utoipa_axum"]
