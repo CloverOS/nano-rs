@@ -1,11 +1,9 @@
 use crate::axum::extractor::Json;
 use crate::axum::rest::RestResp;
-use axum::async_trait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
 
-#[async_trait]
 impl<S, T> FromRequest<S> for Json<T>
 where
     axum::Json<T>: FromRequest<S, Rejection = JsonRejection>,
@@ -20,7 +18,7 @@ where
                 rejection.status(),
                 axum::Json(RestResp::<()> {
                     code: 500,
-                    msg: format!("rejection: {}",rejection.body_text()),
+                    msg: format!("rejection: {}", rejection.body_text()),
                     data: None,
                 }),
             )),

@@ -1,5 +1,5 @@
 #[cfg(feature = "utoipa_axum")]
-use crate::axum::gen::{parse_utoipa_info, trans_utoipa_to_axum};
+use crate::axum::gen::parse_utoipa_info;
 use quote::__private::TokenStream;
 use quote::quote;
 use std::collections::HashMap;
@@ -33,7 +33,7 @@ impl GenApiInfo for AxumGenApiInfo {
         let mut api_fns = api_fns;
         #[cfg(feature = "utoipa_axum")]
         for (_name, api_fn) in api_fns.iter_mut() {
-            parse_utoipa_info(api_fn, trans_utoipa_to_axum);
+            parse_utoipa_info(api_fn);
         }
         let mut api_info_vec: Vec<TokenStream> = vec![];
         let mut keys: Vec<_> = api_fns.keys().collect();

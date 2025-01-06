@@ -177,8 +177,8 @@ impl AppStarter {
     /// add layer to axum app
     pub fn add_layer<L>(mut self, layer: L) -> Self
     where
-        L: Layer<Route> + Clone + Send + 'static,
-        L::Service: Service<Request> + Clone + Send + 'static,
+        L: Layer<Route> + Clone + Send + Sync + 'static,
+        L::Service: Service<Request> + Clone + Send + Sync + 'static,
         <L::Service as Service<Request>>::Response: IntoResponse + 'static,
         <L::Service as Service<Request>>::Error: Into<Infallible> + 'static,
         <L::Service as Service<Request>>::Future: Send + 'static,

@@ -1,18 +1,16 @@
-use axum::async_trait;
-use axum::extract::FromRequestParts;
+use crate::axum::extractor::Path;
+use crate::axum::rest::RestResp;
 use axum::extract::path::ErrorKind;
 use axum::extract::rejection::PathRejection;
+use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use serde::de::DeserializeOwned;
-use crate::axum::extractor::Path;
-use crate::axum::rest::RestResp;
 
-#[async_trait]
 impl<S, T> FromRequestParts<S> for Path<T>
-    where
-        T: DeserializeOwned + Send,
-        S: Send + Sync,
+where
+    T: DeserializeOwned + Send,
+    S: Send + Sync,
 {
     type Rejection = (StatusCode, axum::Json<RestResp<()>>);
 

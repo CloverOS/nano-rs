@@ -1,6 +1,6 @@
-use crate::axum::gen::AxumGen;
 #[cfg(feature = "utoipa_axum")]
-use crate::axum::gen::{parse_utoipa_info, trans_utoipa_to_axum};
+use crate::axum::gen::parse_utoipa_info;
+use crate::axum::gen::AxumGen;
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenRoute;
 use quote::__private::{Span, TokenStream};
@@ -305,7 +305,7 @@ impl AxumGenRoute {
     ) {
         for (name, api_fn) in api_fns.iter_mut() {
             #[cfg(feature = "utoipa_axum")]
-            parse_utoipa_info(api_fn, trans_utoipa_to_axum);
+            parse_utoipa_info(api_fn);
             let path = api_fn.clone().path;
             if let Some(inputs) = api_fn.inputs.clone() {
                 if inputs.is_empty() {

@@ -85,9 +85,9 @@ pub trait AxumGen {
     }
 }
 
-
 /// trans openapi path to axum path, it will deprecated at next version(axum0.8)
 #[cfg(feature = "utoipa_axum")]
+#[deprecated]
 pub fn trans_utoipa_to_axum(old: String) -> String {
     old.replace("{", ":").replace("}", "")
 }
@@ -95,7 +95,6 @@ pub fn trans_utoipa_to_axum(old: String) -> String {
 #[cfg(feature = "utoipa_axum")]
 pub fn parse_utoipa_info(
     api_fn: &mut ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
-    trans_fn: fn(String) -> String,
 ) {
     if let Some(attrs) = api_fn.clone().attrs {
         for attr in attrs.iter() {
@@ -116,7 +115,7 @@ pub fn parse_utoipa_info(
                                 let value = kvs.last().unwrap_or(&"").replace("\"", "");
                                 match key.trim() {
                                     "path" => {
-                                        api_fn.path = trans_fn(value.trim().to_string());
+                                        api_fn.path = value.trim().to_string();
                                     }
                                     "tag" => {
                                         if let Some(api_fn_doc) = &mut api_fn.api_fn_doc {
