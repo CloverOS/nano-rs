@@ -8,7 +8,6 @@ use quote::quote;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{
@@ -226,16 +225,16 @@ impl GenRoute for AxumGenRoute {
         let syntax_tree = syn::parse_file(complete_code.to_string().as_str()).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
         fs::write(routes.as_path(), formatted).expect("create file failed");
-        let output = Command::new("rustfmt")
-            .arg(routes.as_path())
-            .output()
-            .expect("Failed to execute rustfmt");
-        if !output.status.success() {
-            eprintln!(
-                "Rustfmt failed: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
-        }
+        // let output = Command::new("rustfmt")
+        //     .arg(routes.as_path())
+        //     .output()
+        //     .expect("Failed to execute rustfmt");
+        // if !output.status.success() {
+        //     eprintln!(
+        //         "Rustfmt failed: {}",
+        //         String::from_utf8_lossy(&output.stderr)
+        //     );
+        // }
     }
 }
 
