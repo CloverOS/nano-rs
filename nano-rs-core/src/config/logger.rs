@@ -10,6 +10,8 @@ pub struct LogConfig {
     pub enable_request_body_log: Option<bool>,
     /// enable log response body,default false
     pub enable_response_body_log: Option<bool>,
+    /// ignore resource list
+    pub ignore_resource: Option<Vec<Resource>>,
     /// tracing env filter
     #[serde(default = "default_logging")]
     pub logging: HashMap<String, LogLevel>,
@@ -17,6 +19,14 @@ pub struct LogConfig {
     pub level: Option<Level>,
     /// ansi
     pub ansi: Option<bool>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
+pub struct Resource {
+    /// http method
+    pub method: String,
+    /// http request path
+    pub path: String,
 }
 
 fn default_logging() -> HashMap<String, LogLevel> {
@@ -44,47 +54,23 @@ pub struct LogFileConfig {
 impl LogFileConfig {
     pub fn get_default_prefix(&self, level: &str) -> &str {
         match level {
-            "trace" => {
-                "trace.log"
-            }
-            "debug" => {
-                "debug.log"
-            }
-            "info" => {
-                "info.log"
-            }
-            "warn" => {
-                "warn.log"
-            }
-            "error" => {
-                "error.log"
-            }
-            &_ => {
-                "info.log"
-            }
+            "trace" => "trace.log",
+            "debug" => "debug.log",
+            "info" => "info.log",
+            "warn" => "warn.log",
+            "error" => "error.log",
+            &_ => "info.log",
         }
     }
 
     pub fn get_tracing_level(&self, level: &str) -> tracing::Level {
         match level {
-            "trace" => {
-                tracing::Level::TRACE
-            }
-            "debug" => {
-                tracing::Level::DEBUG
-            }
-            "info" => {
-                tracing::Level::INFO
-            }
-            "warn" => {
-                tracing::Level::WARN
-            }
-            "error" => {
-                tracing::Level::ERROR
-            }
-            &_ => {
-                tracing::Level::INFO
-            }
+            "trace" => tracing::Level::TRACE,
+            "debug" => tracing::Level::DEBUG,
+            "info" => tracing::Level::INFO,
+            "warn" => tracing::Level::WARN,
+            "error" => tracing::Level::ERROR,
+            &_ => tracing::Level::INFO,
         }
     }
 }
@@ -123,24 +109,12 @@ impl Level {
 
     pub fn get_log_file_config(&self, level: &str) -> Option<LogFileConfig> {
         match level {
-            "trace" => {
-                self.trace.clone()
-            }
-            "debug" => {
-                self.debug.clone()
-            }
-            "info" => {
-                self.info.clone()
-            }
-            "warn" => {
-                self.warn.clone()
-            }
-            "error" => {
-                self.error.clone()
-            }
-            &_ => {
-                None
-            }
+            "trace" => self.trace.clone(),
+            "debug" => self.debug.clone(),
+            "info" => self.info.clone(),
+            "warn" => self.warn.clone(),
+            "error" => self.error.clone(),
+            &_ => None,
         }
     }
 

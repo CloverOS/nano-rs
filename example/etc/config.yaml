@@ -4,6 +4,9 @@ host: 127.0.0.1
 base_path:
 log:
   enable_request_body_log: true
+  ignore_resource:
+    - method: GET
+      path: /samoyed/name
   level:
     debug:
       file: false

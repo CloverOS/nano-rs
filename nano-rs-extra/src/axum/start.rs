@@ -7,10 +7,10 @@ use axum::routing::Route;
 use axum::Router;
 use axum_client_ip;
 use axum_client_ip::SecureClientIpSource;
+use nano_rs_core::config::logger::LogConfig;
+use nano_rs_core::config::rest::RestConfig;
 use tower::{Layer, Service};
 use tower_http::cors::{Any, CorsLayer};
-
-use nano_rs_core::config::rest::RestConfig;
 
 use crate::axum::shutdown::shutdown_signal;
 use crate::axum::{handler, middleware};
@@ -48,7 +48,7 @@ impl AppStarter {
     ///     };
     ///     let app = Router::new();
     ///     AppStarter::new(app, rest_config)
-    ///         .add_log_layer()
+    ///         .add_log_layer_with_config(None)
     ///         .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
     ///         .run()
     ///         .await;
@@ -106,7 +106,7 @@ impl AppStarter {
     /// }
     /// ```
     pub async fn run_dev(self) {
-        self.add_log_layer()
+        self.add_log_layer_with_config(None)
             .add_secure_client_ip_source_layer(SecureClientIpSource::ConnectInfo)
             .add_dev_cors_layer()
             .run()
@@ -114,6 +114,7 @@ impl AppStarter {
     }
 
     /// add log layer to axum app
+    #[deprecated(since = "0.1.3", note = "use add_log_layer_with_config instead")]
     pub fn add_log_layer(mut self) -> Self {
         let log_request_body = self
             .rest_config
@@ -142,6 +143,66 @@ impl AppStarter {
                 }
             } else {
                 app.route_layer(axum::middleware::from_fn(middleware::trace::trace_http))
+            }
+        } else {
+            self.app
+        };
+        self
+    }
+
+    /// add log layer with log config to axum app
+    pub fn add_log_layer_with_config(mut self, log_config: Option<LogConfig>) -> Self {
+        let log_request_body = self
+            .rest_config
+            .log
+            .enable_request_body_log
+            .clone()
+            .unwrap_or(true);
+        let log_response_body = self
+            .rest_config
+            .log
+            .enable_response_body_log
+            .clone()
+            .unwrap_or(false);
+        let log_req = self.rest_config.log.log_req.clone().unwrap_or(true);
+        let app = self.app.clone().fallback(handler::not_page::handler_404);
+        self.app = if log_req {
+            if log_request_body {
+                if log_response_body {
+                    match log_config {
+                        None => {
+                            app.route_layer(axum::middleware::from_fn(
+                                middleware::trace::trace_http_with_request_body_and_response_body,
+                            ))
+                        }
+                        Some(log_config) => {
+                            app.route_layer(axum::middleware::from_fn_with_state(
+                                log_config,
+                                middleware::trace_with_state::trace_http_with_request_body_and_response_body_with_state,
+                            ))
+                        }
+                    }
+                } else {
+                    match log_config {
+                        None => app.route_layer(axum::middleware::from_fn(
+                            middleware::trace::trace_http_with_request_body,
+                        )),
+                        Some(log_config) => app.route_layer(axum::middleware::from_fn_with_state(
+                            log_config,
+                            middleware::trace_with_state::trace_http_with_request_body_with_state,
+                        )),
+                    }
+                }
+            } else {
+                match log_config {
+                    None => {
+                        app.route_layer(axum::middleware::from_fn(middleware::trace::trace_http))
+                    }
+                    Some(log_config) => app.route_layer(axum::middleware::from_fn_with_state(
+                        log_config,
+                        middleware::trace_with_state::trace_http_with_state,
+                    )),
+                }
             }
         } else {
             self.app

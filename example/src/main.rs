@@ -38,8 +38,8 @@ async fn main() {
         )
     };
     let app = app.layer(CorsLayer::new().allow_origin(Any).allow_methods(Any));
-    AppStarter::new(app, rest_config)
-        .add_log_layer()
+    AppStarter::new(app, rest_config.clone())
+        .add_log_layer_with_config(Some(rest_config.log))
         .add_secure_client_ip_source_layer(SecureClientIpSource::ConnectInfo)
         .run()
         .await;
