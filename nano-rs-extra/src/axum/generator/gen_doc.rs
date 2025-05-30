@@ -14,7 +14,7 @@ use utoipa::openapi::{
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenDoc;
 
-use crate::axum::gen::AxumGen;
+use crate::axum::generator::AxumGen;
 
 pub struct AxumGenDoc {
     pub info: Info,

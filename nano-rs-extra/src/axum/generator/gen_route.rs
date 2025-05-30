@@ -1,6 +1,6 @@
 #[cfg(feature = "utoipa_axum")]
-use crate::axum::gen::parse_utoipa_info;
-use crate::axum::gen::AxumGen;
+use crate::axum::generator::parse_utoipa_info;
+use crate::axum::generator::AxumGen;
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenRoute;
 use quote::__private::{Span, TokenStream};
