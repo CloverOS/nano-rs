@@ -4,7 +4,7 @@ use axum::extract::{Request, State};
 use axum::http::{Response, StatusCode};
 use axum::middleware::Next;
 use axum::response::IntoResponse;
-use axum_client_ip::SecureClientIp;
+use axum_client_ip::ClientIp;
 use nano_rs_core::config::logger::LogConfig;
 use std::time::Instant;
 
@@ -26,7 +26,7 @@ fn should_ignore_trace(log_config: &LogConfig, method: &str, path: &str) -> bool
 
 pub async fn trace_http_with_state(
     State(log_config): State<LogConfig>,
-    SecureClientIp(secure_ip): SecureClientIp,
+    ClientIp(secure_ip): ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -61,7 +61,7 @@ pub async fn trace_http_with_state(
 
 pub async fn trace_http_with_request_body_with_state(
     State(log_config): State<LogConfig>,
-    secure_ip: SecureClientIp,
+    secure_ip: ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -101,7 +101,7 @@ pub async fn trace_http_with_request_body_with_state(
 
 pub async fn trace_http_with_request_body_and_response_body_with_state(
     State(log_config): State<LogConfig>,
-    secure_ip: SecureClientIp,
+    secure_ip: ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {

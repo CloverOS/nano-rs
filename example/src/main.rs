@@ -1,5 +1,5 @@
 use axum::Router;
-use axum_client_ip::SecureClientIpSource;
+use axum_client_ip::ClientIpSource;
 use nano_rs::axum::start::AppStarter;
 use nano_rs::config::init_config_with_cli;
 use nano_rs::config::rest::RestConfig;
@@ -40,7 +40,7 @@ async fn main() {
     let app = app.layer(CorsLayer::new().allow_origin(Any).allow_methods(Any));
     AppStarter::new(app, rest_config.clone())
         .add_log_layer_with_config(Some(rest_config.log))
-        .add_secure_client_ip_source_layer(SecureClientIpSource::ConnectInfo)
+        .add_secure_client_ip_source_layer(ClientIpSource::ConnectInfo)
         .run()
         .await;
 }

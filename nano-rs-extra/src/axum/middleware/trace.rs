@@ -5,12 +5,12 @@ use axum::extract::Request;
 use axum::http::{Response, StatusCode};
 use axum::middleware::Next;
 use axum::response::IntoResponse;
-use axum_client_ip::SecureClientIp;
+use axum_client_ip::ClientIp;
 use http_body_util::BodyExt;
 use serde::{Deserialize, Serialize};
 
 pub async fn trace_http(
-    SecureClientIp(secure_ip): SecureClientIp,
+    ClientIp(secure_ip): ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -36,7 +36,7 @@ pub async fn trace_http(
 }
 
 pub async fn trace_http_with_request_body(
-    secure_ip: SecureClientIp,
+    secure_ip: ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -67,7 +67,7 @@ pub async fn trace_http_with_request_body(
 }
 
 pub async fn trace_http_with_request_body_and_response_body(
-    secure_ip: SecureClientIp,
+    secure_ip: ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {

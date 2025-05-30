@@ -1,6 +1,6 @@
 [package]
 name = "nano-rs"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 categories = ["network-programming", "web-programming", "config"]
 description = "Light Web Kit"

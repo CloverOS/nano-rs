@@ -6,7 +6,7 @@ use axum::response::IntoResponse;
 use axum::routing::Route;
 use axum::Router;
 use axum_client_ip;
-use axum_client_ip::SecureClientIpSource;
+use axum_client_ip::ClientIpSource;
 use nano_rs_core::config::logger::LogConfig;
 use nano_rs_core::config::rest::RestConfig;
 use tower::{Layer, Service};
@@ -36,7 +36,7 @@ impl AppStarter {
     /// ```rust
     /// use axum::Router;
     /// use nano_rs_core::config::rest::RestConfig;
-    /// use axum_client_ip::SecureClientIpSource;
+    /// use axum_client_ip::ClientIpSource;
     /// use nano_rs_extra::axum::start::AppStarter;
     ///
     /// #[tokio::main]
@@ -49,7 +49,7 @@ impl AppStarter {
     ///     let app = Router::new();
     ///     AppStarter::new(app, rest_config)
     ///         .add_log_layer_with_config(None)
-    ///         .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
+    ///         .add_secure_client_ip_source_layer(ClientIpSource::XRealIp)
     ///         .run()
     ///         .await;
     /// }
@@ -86,7 +86,7 @@ impl AppStarter {
     /// ```rust
     /// use axum::Router;
     /// use nano_rs_core::config::rest::RestConfig;
-    /// use axum_client_ip::SecureClientIpSource;
+    /// use axum_client_ip::ClientIpSource;
     /// use nano_rs_extra::axum::start::AppStarter;
     ///
     /// #[tokio::main]
@@ -107,7 +107,7 @@ impl AppStarter {
     /// ```
     pub async fn run_dev(self) {
         self.add_log_layer_with_config(None)
-            .add_secure_client_ip_source_layer(SecureClientIpSource::ConnectInfo)
+            .add_secure_client_ip_source_layer(ClientIpSource::ConnectInfo)
             .add_dev_cors_layer()
             .run()
             .await;
@@ -211,7 +211,7 @@ impl AppStarter {
     }
 
     /// add secure client ip source layer to axum app
-    pub fn add_secure_client_ip_source_layer(mut self, sci: SecureClientIpSource) -> Self {
+    pub fn add_secure_client_ip_source_layer(mut self, sci: ClientIpSource) -> Self {
         self.app = self.app.layer(sci.into_extension());
         self
     }
