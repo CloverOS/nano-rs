@@ -113,7 +113,7 @@ cargo build
 ```rust
 use axum::Router;
 use nano_rs_core::config::rest::RestConfig;
-use axum_client_ip::SecureClientIpSource;
+use axum_client_ip::ClientIpSource;
 use nano_rs_extra::axum::start::AppStarter;
 
 #[tokio::main]
@@ -126,8 +126,8 @@ async fn main() {
     let app = Router::new();
     AppStarter::new(app, rest_config)
         .add_log_layer()
-        /// 如果是使用nginx代理，需要使用SecureClientIpSource::XRealIp
-        .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
+        /// 如果是使用nginx代理，需要使用ClientIpSource::XRealIp
+        .add_secure_client_ip_source_layer(ClientIpSource::XRealIp)
         .run()
         .await;
 }
