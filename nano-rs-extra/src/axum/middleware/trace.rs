@@ -71,6 +71,25 @@ pub async fn trace_http_with_request_body_and_response_body(
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
+    // 检查WebSocket升级请求
+    if let Some(upgrade) = req.headers().get("upgrade") {
+        if let Ok(upgrade_str) = upgrade.to_str() {
+            if upgrade_str.eq_ignore_ascii_case("websocket") {
+                let res = next.run(req).await;
+                return Ok(res);
+            }
+        }
+    }
+
+    // 检查SSE请求 (Accept: text/event-stream)
+    if let Some(accept) = req.headers().get("accept") {
+        if let Ok(accept_str) = accept.to_str() {
+            if accept_str.contains("text/event-stream") {
+                let res = next.run(req).await;
+                return Ok(res);
+            }
+        }
+    }
     let start = Instant::now();
     let mut req_info = RequestInfo {
         method: String::from(&req.method().to_string()),
