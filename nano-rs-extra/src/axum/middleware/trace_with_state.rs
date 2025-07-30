@@ -33,7 +33,7 @@ pub async fn trace_http_with_state(
     if should_ignore_trace(
         &log_config,
         &req.method().to_string(),
-        &req.uri().to_string(),
+        &req.uri().path().to_string(),
     ) {
         return Ok(next.run(req).await);
     }
@@ -68,7 +68,7 @@ pub async fn trace_http_with_request_body_with_state(
     if should_ignore_trace(
         &log_config,
         &req.method().to_string(),
-        &req.uri().to_string(),
+        &req.uri().path().to_string(),
     ) {
         return Ok(next.run(req).await);
     }
@@ -127,7 +127,7 @@ pub async fn trace_http_with_request_body_and_response_body_with_state(
     if should_ignore_trace(
         &log_config,
         &req.method().to_string(),
-        &req.uri().to_string(),
+        &req.uri().path().to_string(),
     ) {
         return Ok(next.run(req).await);
     }
