@@ -4,3 +4,4 @@
 Cargo.lock
 /nano-rs-rpc/
 /example/.nano_cache
+.DS_Store
