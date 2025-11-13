@@ -3,9 +3,9 @@ pub mod store;
 pub mod samoyed {
     use axum::extract::{Path, State};
 
-    use nano_rs::{biz_ok, get, post};
     use nano_rs::axum::errors::ServerError;
     use nano_rs::axum::rest::RestResp;
+    use nano_rs::{biz_ok, get, post};
 
     use crate::ServiceContext;
     use crate::types::pet::PetShower;
@@ -20,7 +20,9 @@ pub mod samoyed {
         )
     )]
     #[post(layers = ["crate::layers::auth::auth_token#{crate::ServiceContext}", "crate::layers::auth::auth_token1"])]
-    pub async fn shower(State(_svc): State<ServiceContext>) -> Result<RestResp<PetShower>, ServerError> {
+    pub async fn shower(
+        State(_svc): State<ServiceContext>,
+    ) -> Result<RestResp<PetShower>, ServerError> {
         biz_ok!(PetShower {
             name: "mantou".to_string(),
             status: "clean! Ready to go home".to_string(),
@@ -54,7 +56,10 @@ pub mod samoyed {
         )
     )]
     #[get()]
-    pub async fn hello(Path(name): Path<String>, State(_svc): State<ServiceContext>) -> Result<RestResp<String>, ServerError> {
+    pub async fn hello(
+        Path(name): Path<String>,
+        State(_svc): State<ServiceContext>,
+    ) -> Result<RestResp<String>, ServerError> {
         biz_ok!(name)
     }
 

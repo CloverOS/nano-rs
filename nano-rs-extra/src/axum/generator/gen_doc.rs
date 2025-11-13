@@ -1,18 +1,17 @@
-use quote::{quote, ToTokens};
-use std::collections::HashMap;
+use crate::axum::generator::cache::{DocSchemaCache, FileFingerprint};
+use proc_macro2::Span;
+use quote::quote;
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{
-    parse_str, Attribute, FnArg, Item, ItemEnum, ItemMod, ItemStruct, ItemUse, Meta, TypePath,
-};
-use utoipa::openapi::{
-    Contact, ExternalDocs, Info, License, Object, SecurityRequirement, Server, Tag,
-};
+use syn::{Attribute, FnArg, Item, ItemUse, LitStr, Path as SynPath, TypePath, parse_str};
+use utoipa::openapi::{ExternalDocs, Info, Object, SecurityRequirement, Server, Tag};
 
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenDoc;
+use nano_rs_build::api_parse::{CrateContext, resolve_crate_context};
 
 use crate::axum::generator::AxumGen;
 
@@ -36,13 +35,22 @@ impl GenDoc for AxumGenDoc {
         >,
     ) {
         eprintln!("AxumGenRoute gen_doc in {:?}", path_buf);
-        let mut struct_map: HashMap<String, ItemStruct> = HashMap::new();
-        let mut enum_map: HashMap<String, ItemEnum> = HashMap::new();
-        self.parse_to_schema(&mut struct_map, &mut enum_map, rs_files);
-        let docs = path_buf.join(self.get_doc_file_path());
-        if !docs.exists() {
-            fs::write(docs.as_path(), "").expect("create routes files error");
+        let mut schema_cache: DocSchemaCache = DocSchemaCache::load(path_buf.as_path());
+        let mut struct_paths: BTreeSet<String> = BTreeSet::new();
+        let mut enum_paths: BTreeSet<String> = BTreeSet::new();
+        let mut crate_cache: HashMap<PathBuf, CrateContext> = HashMap::new();
+        self.parse_to_schema(
+            &mut struct_paths,
+            &mut enum_paths,
+            rs_files,
+            &mut schema_cache,
+            path_buf.as_path(),
+            &mut crate_cache,
+        );
+        if let Err(err) = schema_cache.save(path_buf.as_path()) {
+            eprintln!("failed to persist doc cache: {err}");
         }
+        let docs = path_buf.join(self.get_doc_file_path());
 
         let mut api_fns_keys: Vec<_> = api_fns.keys().collect();
         api_fns_keys.sort();
@@ -61,65 +69,46 @@ impl GenDoc for AxumGenDoc {
 
         let mut tags_code = vec![];
         for tag in &self.tags {
-            let name = tag.clone().name;
-            let description = tag.clone().description.unwrap_or("".to_string());
+            let name = LitStr::new(tag.name.as_str(), Span::call_site());
+            let description_value = tag.description.as_deref().unwrap_or("");
+            let description = LitStr::new(description_value, Span::call_site());
             tags_code.push(quote! {
                 (name = #name, description = #description),
             })
         }
 
         let mut components_code = vec![];
-        let mut struct_map_keys: Vec<_> = struct_map.keys().collect();
-        struct_map_keys.sort();
-        for key in struct_map_keys {
+        for key in &struct_paths {
             let type_path: TypePath = parse_str(key.as_str())
-                .expect(format!("Failed to parse type path -> {}", key.clone()).as_str());
+                .unwrap_or_else(|_| panic!("Failed to parse type path -> {key}"));
             components_code.push(quote! {
                 #type_path
             });
         }
-        let mut enum_map_keys: Vec<_> = enum_map.keys().collect();
-        enum_map_keys.sort();
-        for key in enum_map_keys {
+        for key in &enum_paths {
             let type_path: TypePath = parse_str(key.as_str())
-                .expect(format!("Failed to parse type path -> {}", key.clone()).as_str());
+                .unwrap_or_else(|_| panic!("Failed to parse type path -> {key}"));
             components_code.push(quote! {
                 #type_path
             });
         }
 
-        let title = &self.info.title.clone();
-        let description = &self.info.description.clone().unwrap_or("".to_string());
-        let version = &self.info.version.clone();
-        let license_name = &self.info.license.clone().unwrap_or(License::default()).name;
-        let license_url = &self
-            .info
-            .license
-            .clone()
-            .unwrap_or(License::default())
-            .url
-            .unwrap_or("".to_string());
-        let contact_name = &self
-            .info
-            .contact
-            .clone()
-            .unwrap_or(Contact::default())
-            .name
-            .unwrap_or("".to_string());
-        let contact_email = &self
-            .info
-            .contact
-            .clone()
-            .unwrap_or(Contact::default())
-            .email
-            .unwrap_or("".to_string());
-        let contact_url = &self
-            .info
-            .contact
-            .clone()
-            .unwrap_or(Contact::default())
-            .url
-            .unwrap_or("".to_string());
+        let title = LitStr::new(self.info.title.as_str(), Span::call_site());
+        let description_value = self.info.description.as_deref().unwrap_or("");
+        let description = LitStr::new(description_value, Span::call_site());
+        let version = LitStr::new(self.info.version.as_str(), Span::call_site());
+        let license = self.info.license.as_ref();
+        let license_name_value = license.map(|item| item.name.as_str()).unwrap_or("");
+        let license_name = LitStr::new(license_name_value, Span::call_site());
+        let license_url_value = license.and_then(|item| item.url.as_deref()).unwrap_or("");
+        let license_url = LitStr::new(license_url_value, Span::call_site());
+        let contact = self.info.contact.as_ref();
+        let contact_name_value = contact.and_then(|item| item.name.as_deref()).unwrap_or("");
+        let contact_name = LitStr::new(contact_name_value, Span::call_site());
+        let contact_email_value = contact.and_then(|item| item.email.as_deref()).unwrap_or("");
+        let contact_email = LitStr::new(contact_email_value, Span::call_site());
+        let contact_url_value = contact.and_then(|item| item.url.as_deref()).unwrap_or("");
+        let contact_url = LitStr::new(contact_url_value, Span::call_site());
         let info_code = quote! {
             info(
                 title = #title,
@@ -139,8 +128,9 @@ impl GenDoc for AxumGenDoc {
 
         let mut servers_code = vec![];
         for server in self.servers.iter() {
-            let server_url = server.clone().url;
-            let server_description = server.clone().description.unwrap_or("".to_string());
+            let server_url = LitStr::new(server.url.as_str(), Span::call_site());
+            let server_description_value = server.description.as_deref().unwrap_or("");
+            let server_description = LitStr::new(server_description_value, Span::call_site());
             servers_code.push(quote! {
                (url = #server_url, description = #server_description),
             });
@@ -164,9 +154,17 @@ impl GenDoc for AxumGenDoc {
             )]
             pub struct GenApi{}
         };
-        let syntax_tree = syn::parse_file(doc_code.to_string().as_str()).unwrap();
+        let syntax_tree: syn::File = syn::parse2(doc_code).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
-        fs::write(docs.as_path(), formatted).expect("create file failed");
+        let should_write = fs::read_to_string(docs.as_path())
+            .map(|existing| existing != formatted)
+            .unwrap_or(true);
+        if should_write {
+            if let Some(parent) = docs.parent() {
+                fs::create_dir_all(parent).expect("create doc directory error");
+            }
+            fs::write(docs.as_path(), formatted).expect("create file failed");
+        }
         // let output = Command::new("rustfmt")
         //     .arg(docs.as_path())
         //     .output()
@@ -180,12 +178,6 @@ impl GenDoc for AxumGenDoc {
     }
 }
 
-pub struct RsFile {
-    pub path: PathBuf,
-    pub mods: Vec<ItemMod>,
-    pub uses: Vec<ItemUse>,
-}
-
 impl AxumGenDoc {
     pub fn new() -> AxumGenDocBuilder {
         AxumGenDocBuilder::default()
@@ -193,176 +185,168 @@ impl AxumGenDoc {
 
     fn parse_to_schema(
         &self,
-        struct_map: &mut HashMap<String, ItemStruct>,
-        enum_map: &mut HashMap<String, ItemEnum>,
+        struct_paths: &mut BTreeSet<String>,
+        enum_paths: &mut BTreeSet<String>,
         rs_files: Vec<PathBuf>,
+        cache: &mut DocSchemaCache,
+        base_path: &Path,
+        crate_cache: &mut HashMap<PathBuf, CrateContext>,
     ) {
         for rs_file in rs_files {
-            let src = fs::read_to_string(rs_file.clone()).expect("read file error");
-            let syntax_tree = syn::parse_file(&src).expect("parse file error");
-            for item in syntax_tree.items {
-                match item {
-                    Item::Struct(item_struct) => {
-                        for attr in item_struct.attrs.iter() {
-                            if attr.path().is_ident("derive") {
-                                if let Meta::List(meta_list) = &attr.meta {
-                                    //derive ToSchema
-                                    if meta_list
-                                        .tokens
-                                        .to_token_stream()
-                                        .to_string()
-                                        .contains("ToSchema")
-                                    {
-                                        struct_map.insert(
-                                            format!(
-                                                "{}::{}",
-                                                self.parse_path_to_crate(&rs_file),
-                                                item_struct.ident.to_string()
-                                            ),
-                                            item_struct.clone(),
-                                        );
-                                    }
-                                }
-                            }
-                        }
+            let fingerprint = FileFingerprint::from_path(rs_file.as_path()).ok();
+            if let Some(fp) = fingerprint.as_ref() {
+                if let Some(entry) = cache.get(base_path, rs_file.as_path(), fp) {
+                    for value in &entry.structs {
+                        struct_paths.insert(value.clone());
                     }
-                    Item::Enum(item_enum) => {
-                        for attr in item_enum.attrs.iter() {
-                            if attr.path().is_ident("derive") {
-                                if let Meta::List(meta_list) = &attr.meta {
-                                    //derive ToSchema
-                                    if meta_list
-                                        .tokens
-                                        .to_token_stream()
-                                        .to_string()
-                                        .contains("ToSchema")
-                                    {
-                                        enum_map.insert(
-                                            format!(
-                                                "{}::{}",
-                                                self.parse_path_to_crate(&rs_file),
-                                                item_enum.ident.to_string()
-                                            ),
-                                            item_enum.clone(),
-                                        );
-                                    }
-                                }
-                            }
-                        }
+                    for value in &entry.enums {
+                        enum_paths.insert(value.clone());
                     }
-                    Item::Mod(item_mod) => {
-                        self.parse_to_schema_in_mod(
-                            struct_map,
-                            enum_map,
-                            &rs_file,
-                            &item_mod,
-                            item_mod.ident.to_string(),
-                        );
-                    }
-                    _ => {}
+                    continue;
                 }
+            }
+
+            let crate_ctx = resolve_crate_context(rs_file.as_path(), base_path, crate_cache);
+            let (structs, enums) = self.extract_schemas(&crate_ctx, rs_file.as_path());
+            for value in &structs {
+                struct_paths.insert(value.clone());
+            }
+            for value in &enums {
+                enum_paths.insert(value.clone());
+            }
+            if let Some(fp) = fingerprint {
+                cache.update(base_path, rs_file.as_path(), &fp, structs, enums);
             }
         }
     }
 
-    fn parse_to_schema_in_mod(
+    fn extract_schemas(
         &self,
-        struct_map: &mut HashMap<String, ItemStruct>,
-        enum_map: &mut HashMap<String, ItemEnum>,
-        rs_file: &PathBuf,
-        item_mod: &ItemMod,
-        mod_name: String,
+        crate_ctx: &CrateContext,
+        rs_file: &Path,
+    ) -> (Vec<String>, Vec<String>) {
+        let src = fs::read_to_string(rs_file).expect("read file error");
+        let syntax_tree = syn::parse_file(&src).expect("parse file error");
+        let crate_path = self.parse_path_to_crate(crate_ctx, rs_file);
+        let mut module_stack: Vec<String> = Vec::new();
+        let mut structs = Vec::new();
+        let mut enums = Vec::new();
+        self.collect_items(
+            &syntax_tree.items,
+            &crate_path,
+            &mut module_stack,
+            &mut structs,
+            &mut enums,
+        );
+        (structs, enums)
+    }
+
+    fn collect_items(
+        &self,
+        items: &[Item],
+        crate_path: &str,
+        module_stack: &mut Vec<String>,
+        structs: &mut Vec<String>,
+        enums: &mut Vec<String>,
     ) {
-        for content in item_mod.content.iter() {
-            for item in content.clone().1.iter() {
-                match item {
-                    Item::Mod(item_mod) => self.parse_to_schema_in_mod(
-                        struct_map,
-                        enum_map,
-                        rs_file,
-                        item_mod,
-                        format!("{}::{}", mod_name, item_mod.ident.to_string()),
-                    ),
-                    Item::Struct(item_struct) => {
-                        for attr in item_struct.attrs.iter() {
-                            if attr.path().is_ident("derive") {
-                                if let Meta::List(meta_list) = &attr.meta {
-                                    //derive ToSchema
-                                    if meta_list
-                                        .tokens
-                                        .to_token_stream()
-                                        .to_string()
-                                        .contains("ToSchema")
-                                    {
-                                        struct_map.insert(
-                                            format!(
-                                                "{}::{}::{}",
-                                                self.parse_path_to_crate(rs_file),
-                                                mod_name,
-                                                item_struct.ident.to_string()
-                                            ),
-                                            item_struct.clone(),
-                                        );
-                                    }
-                                }
-                            }
-                        }
+        for item in items {
+            match item {
+                Item::Struct(item_struct) => {
+                    if Self::has_to_schema(&item_struct.attrs) {
+                        let path = Self::build_schema_path(
+                            crate_path,
+                            module_stack,
+                            item_struct.ident.to_string(),
+                        );
+                        structs.push(path);
                     }
-                    Item::Enum(item_enum) => {
-                        for attr in item_enum.attrs.iter() {
-                            if attr.path().is_ident("derive") {
-                                if let Meta::List(meta_list) = &attr.meta {
-                                    //derive ToSchema
-                                    if meta_list
-                                        .tokens
-                                        .to_token_stream()
-                                        .to_string()
-                                        .contains("ToSchema")
-                                    {
-                                        enum_map.insert(
-                                            format!(
-                                                "{}::{}::{}",
-                                                self.parse_path_to_crate(rs_file),
-                                                mod_name,
-                                                item_enum.ident.to_string()
-                                            ),
-                                            item_enum.clone(),
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
                 }
+                Item::Enum(item_enum) => {
+                    if Self::has_to_schema(&item_enum.attrs) {
+                        let path = Self::build_schema_path(
+                            crate_path,
+                            module_stack,
+                            item_enum.ident.to_string(),
+                        );
+                        enums.push(path);
+                    }
+                }
+                Item::Mod(item_mod) => {
+                    if let Some((_, nested_items)) = &item_mod.content {
+                        module_stack.push(item_mod.ident.to_string());
+                        self.collect_items(nested_items, crate_path, module_stack, structs, enums);
+                        module_stack.pop();
+                    }
+                }
+                _ => {}
             }
         }
     }
 
-    fn parse_path_to_crate(&self, rs_file: &PathBuf) -> String {
-        let path = rs_file.as_path();
-        // split src
-        if let Some(position) = path.components().position(|comp| comp.as_os_str() == "src") {
-            let sub_path = path.components().skip(position + 1);
+    fn build_schema_path(crate_path: &str, module_stack: &[String], ident: String) -> String {
+        let mut path = crate_path.to_owned();
+        for segment in module_stack {
+            path.push_str("::");
+            path.push_str(segment);
+        }
+        path.push_str("::");
+        path.push_str(&ident);
+        path
+    }
 
-            //gen crate path
-            let mut crate_path = sub_path.fold("crate".to_string(), |mut acc, comp| {
-                let comp_str = comp.as_os_str().to_string_lossy();
-                acc.push_str("::");
-                acc.push_str(&comp_str);
-                acc
-            });
-            // check mod.rs
-            crate_path = crate_path.replace("::mod.rs", "");
-
-            // remove .rs
-            if let Some(stripped_path) = crate_path.strip_suffix(".rs") {
-                stripped_path.to_string()
-            } else {
-                crate_path
+    fn has_to_schema(attrs: &[Attribute]) -> bool {
+        attrs.iter().any(|attr| {
+            if !attr.path().is_ident("derive") {
+                return false;
             }
+            attr.parse_args_with(Punctuated::<SynPath, Comma>::parse_terminated)
+                .map(|paths| {
+                    paths.iter().any(|path| {
+                        path.segments
+                            .last()
+                            .map(|segment| segment.ident == "ToSchema")
+                            .unwrap_or(false)
+                    })
+                })
+                .unwrap_or(false)
+        })
+    }
+
+    fn parse_path_to_crate(&self, crate_ctx: &CrateContext, rs_file: &Path) -> String {
+        let relative = rs_file.strip_prefix(&crate_ctx.root).unwrap_or(rs_file);
+        let mut segments: Vec<String> = Vec::new();
+        let mut inside_src = false;
+        for component in relative.components() {
+            use std::path::Component;
+            match component {
+                Component::ParentDir | Component::CurDir | Component::RootDir => {}
+                Component::Prefix(_) => {}
+                Component::Normal(os_str) => {
+                    let part = os_str.to_string_lossy();
+                    if !inside_src {
+                        if part == "src" {
+                            inside_src = true;
+                        }
+                        continue;
+                    }
+                    if part == "mod.rs" || part == "lib.rs" || part == "main.rs" {
+                        continue;
+                    }
+                    if part.ends_with(".rs") {
+                        let stem = part.trim_end_matches(".rs");
+                        if !stem.is_empty() {
+                            segments.push(stem.to_string());
+                        }
+                    } else {
+                        segments.push(part.to_string());
+                    }
+                }
+            }
+        }
+        if segments.is_empty() {
+            crate_ctx.code_prefix.clone()
         } else {
-            "".to_string()
+            format!("{}::{}", crate_ctx.code_prefix, segments.join("::"))
         }
     }
 
@@ -370,14 +354,14 @@ impl AxumGenDoc {
         &self,
         api_fn: &ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
     ) -> bool {
-        if let Some(attrs) = &api_fn.attrs {
-            for attr in attrs {
-                if attr.path().to_token_stream().to_string().contains("utoipa") {
-                    return true;
-                }
-            }
-        }
-        false
+        api_fn.attrs.as_ref().map_or(false, |attrs| {
+            attrs.iter().any(|attr| {
+                attr.path()
+                    .segments
+                    .iter()
+                    .any(|segment| segment.ident == "utoipa")
+            })
+        })
     }
 }
 

@@ -9,6 +9,7 @@ use syn::token::Comma;
 use syn::{Attribute, FnArg};
 use syn::{ItemUse, UseGroup, UseName, UsePath, UseRename, UseTree};
 
+pub(crate) mod cache;
 pub mod gen_api_info;
 pub mod gen_doc;
 pub mod gen_route;

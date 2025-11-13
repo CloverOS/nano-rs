@@ -17,7 +17,12 @@ pub struct GenComments {
 }
 
 impl GenComments {
-    pub fn new(path: Option<PathBuf>, database_url: String, database: String, schema: Option<String>) -> Self {
+    pub fn new(
+        path: Option<PathBuf>,
+        database_url: String,
+        database: String,
+        schema: Option<String>,
+    ) -> Self {
         let path_buf;
         if let Some(p) = path {
             path_buf = p;
@@ -45,7 +50,7 @@ impl GenComments {
             let mut syntax_tree = syn::parse_file(&src)?;
             for item in &mut syntax_tree.items {
                 match item {
-                    Item::Struct(ref mut item_struct) => {
+                    Item::Struct(item_struct) => {
                         for attr in &item_struct.clone().attrs {
                             if attr.meta.path().is_ident("sea_orm") {
                                 if let Ok(meta_list) = attr.meta.require_list() {
@@ -78,17 +83,30 @@ impl GenComments {
 
                                             for field in &mut item_struct.fields {
                                                 for x in &ret {
-                                                    if let (Some(col_name), Some(comment)) = (x.get("column_name").and_then(|n| n.as_str()),
-                                                                                              x.get("column_comment").and_then(|c| c.as_str())) {
+                                                    if let (Some(col_name), Some(comment)) = (
+                                                        x.get("column_name")
+                                                            .and_then(|n| n.as_str()),
+                                                        x.get("column_comment")
+                                                            .and_then(|c| c.as_str()),
+                                                    ) {
                                                         if let Some(ident) = &field.ident {
                                                             if ident.eq(col_name) {
-                                                                let formatted_comment = format!(" {}", comment);
+                                                                let formatted_comment =
+                                                                    format!(" {}", comment);
                                                                 // check doc exists
-                                                                let doc_exists = field.attrs.iter().any(|attr| attr.meta.path().is_ident("doc"));
+                                                                let doc_exists = field
+                                                                    .attrs
+                                                                    .iter()
+                                                                    .any(|attr| {
+                                                                        attr.meta
+                                                                            .path()
+                                                                            .is_ident("doc")
+                                                                    });
                                                                 if !doc_exists {
                                                                     field.attrs.push(parse_quote!(#[doc = #formatted_comment]));
                                                                 }
-                                                            }}
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }

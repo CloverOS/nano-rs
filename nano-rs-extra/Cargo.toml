@@ -1,51 +1,60 @@
 [package]
-name = "nano-rs-extra"
-version = "0.1.4"
-edition = "2021"
-categories = ["network-programming", "web-programming", "config"]
+categories = ["config", "network-programming", "web-programming"]
 description = "Light Web Kit"
-rust-version = "1.66"
+edition = "2024"
 homepage = "https://github.com/CloverOS/nano-rs"
-keywords = ["http", "web", "config", "auto-route"]
+keywords = ["auto-route", "config", "http", "web"]
 license = "MIT"
+name = "nano-rs-extra"
 readme = "README.md"
 repository = "https://github.com/CloverOS/nano-rs"
+rust-version = "1.85.0"
+version = "0.1.4"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { workspace = true }
-serde_yaml = { workspace = true }
-tracing = { workspace = true }
 anyhow = { workspace = true }
-tokio = { workspace = true }
+axum = { workspace = true }
+axum-client-ip = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tokio = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
+tracing = { workspace = true }
 tracing-opentelemetry-instrumentation-sdk = { workspace = true }
-axum = { workspace = true }
-hyper = { workspace = true }
-http-body-util = { workspace = true }
-axum-client-ip = { workspace = true }
 
-sea-orm = { version = "1.1.0", features = ["sqlx-mysql", "sqlx-postgres", "runtime-tokio-rustls", "macros"] }
-log = "0.4.20"
+bytes = { workspace = true }
+log = { workspace = true }
+mime = { workspace = true }
+regex = { workspace = true }
+uuid = { workspace = true }
 
-
-uuid = { version = "1.7.0", features = ["v4", "serde"] }
-syn = { version = "2.0.55", features = ["full"] }
-quote = { version = "1.0.35", features = ["default"] }
 prettyplease = "0.2.16"
-
-
-nano-rs-core = { path = "../nano-rs-core", version = "0.1.0" }
-nano-rs-build = { path = "../nano-rs-build", version = "0.1.1" }
-bytes = "1.5.0"
-mime = "0.3.17"
 proc-macro2 = "1.0.79"
+quote = { version = "1.0.35", features = ["default"] }
+syn = { version = "2.0.55", features = ["full"] }
 
-utoipa = { version = "5.3.1", features = ["axum_extras"] }
-regex = "1.10.4"
+nano-rs-build = { path = "../nano-rs-build" }
+nano-rs-core = { path = "../nano-rs-core" }
+sea-orm = { version = "1.1.0", default-features = false, optional = true, features = [
+  "macros",
+  "runtime-tokio-rustls",
+  "with-bigdecimal",
+  "with-chrono",
+  "with-json",
+  "with-rust_decimal",
+  "with-time",
+  "with-uuid",
+] }
+utoipa = { version = "5.3.1", optional = true, features = ["axum_extras"] }
 
 [features]
-utoipa_axum = []
+default = []
+mysql = ["dep:sea-orm", "sea-orm/sqlx-mysql"]
+postgres = ["dep:sea-orm", "sea-orm/sqlx-postgres"]
+utoipa_axum = ["dep:utoipa"]

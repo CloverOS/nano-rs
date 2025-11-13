@@ -2,3 +2,5 @@
 .idea
 /logs/
 Cargo.lock
+/nano-rs-rpc/
+/example/.nano_cache

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use syn::{Attribute, FnArg, ItemUse};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
+use syn::{Attribute, FnArg, ItemUse};
 
 use crate::api_file::get_rs_files;
 use crate::api_fn::{ApiFn, get_rs_files_fns};
@@ -16,7 +16,6 @@ pub struct NanoBuilder {
     rs_files: Vec<PathBuf>,
 }
 
-
 impl NanoBuilder {
     pub fn new(path: Option<PathBuf>) -> Self {
         let api_gen_path;
@@ -27,7 +26,8 @@ impl NanoBuilder {
         }
         let mut rs_files = Vec::new();
         get_rs_files(&mut rs_files, api_gen_path.as_path()).expect("get rs files error");
-        let api_fns = get_rs_files_fns(&mut rs_files).expect("get rs files fns error");
+        let api_fns = get_rs_files_fns(&mut rs_files, api_gen_path.as_path())
+            .expect("get rs files fns error");
         eprintln!("get {} api things", api_fns.len());
         NanoBuilder {
             api_fns,
@@ -37,12 +37,20 @@ impl NanoBuilder {
     }
 
     pub fn gen_api_route(&mut self, gen_route: impl GenRoute) -> &mut Self {
-        gen_route.gen_route(self.rs_files.clone(), self.clone().api_gen_path, self.api_fns.clone());
+        gen_route.gen_route(
+            self.rs_files.clone(),
+            self.clone().api_gen_path,
+            self.api_fns.clone(),
+        );
         self
     }
 
     pub fn gen_api_doc(&mut self, gen_doc: impl GenDoc) -> &mut Self {
-        gen_doc.gen_doc(self.rs_files.clone(), self.clone().api_gen_path, self.api_fns.clone());
+        gen_doc.gen_doc(
+            self.rs_files.clone(),
+            self.clone().api_gen_path,
+            self.api_fns.clone(),
+        );
         self
     }
 
@@ -51,4 +59,3 @@ impl NanoBuilder {
         self
     }
 }
-
