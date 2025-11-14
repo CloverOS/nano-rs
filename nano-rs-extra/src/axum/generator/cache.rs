@@ -1,5 +1,6 @@
+use crate::axum::generator::write_if_changed;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -58,7 +59,7 @@ impl FileFingerprint {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DocSchemaCache {
-    files: HashMap<String, FileCacheEntry>,
+    files: BTreeMap<String, FileCacheEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,10 +81,10 @@ impl DocSchemaCache {
 
     pub fn save(&self, base: &Path) -> io::Result<()> {
         let dir = cache_dir_path(base);
-        fs::create_dir_all(&dir)?;
         let path = dir.join(DOC_SCHEMA_FILE);
-        let bytes = serde_json::to_vec_pretty(self)?;
-        fs::write(path, bytes)
+        let json = serde_json::to_string_pretty(self)?;
+        let _ = write_if_changed(path.as_path(), json.as_str())?;
+        Ok(())
     }
 
     fn key(base: &Path, file: &Path) -> String {

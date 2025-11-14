@@ -1,4 +1,5 @@
 use crate::axum::generator::cache::{DocSchemaCache, FileFingerprint};
+use crate::axum::generator::{AxumGen, write_if_changed};
 use proc_macro2::Span;
 use quote::quote;
 use std::collections::{BTreeSet, HashMap};
@@ -12,8 +13,6 @@ use utoipa::openapi::{ExternalDocs, Info, Object, SecurityRequirement, Server, T
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenDoc;
 use nano_rs_build::api_parse::{CrateContext, resolve_crate_context};
-
-use crate::axum::generator::AxumGen;
 
 pub struct AxumGenDoc {
     pub info: Info,
@@ -33,9 +32,14 @@ impl GenDoc for AxumGenDoc {
             String,
             ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
         >,
+        cache_enabled: bool,
     ) {
         eprintln!("AxumGenRoute gen_doc in {:?}", path_buf);
-        let mut schema_cache: DocSchemaCache = DocSchemaCache::load(path_buf.as_path());
+        let mut schema_cache: DocSchemaCache = if cache_enabled {
+            DocSchemaCache::load(path_buf.as_path())
+        } else {
+            DocSchemaCache::default()
+        };
         let mut struct_paths: BTreeSet<String> = BTreeSet::new();
         let mut enum_paths: BTreeSet<String> = BTreeSet::new();
         let mut crate_cache: HashMap<PathBuf, CrateContext> = HashMap::new();
@@ -46,9 +50,12 @@ impl GenDoc for AxumGenDoc {
             &mut schema_cache,
             path_buf.as_path(),
             &mut crate_cache,
+            cache_enabled,
         );
-        if let Err(err) = schema_cache.save(path_buf.as_path()) {
-            eprintln!("failed to persist doc cache: {err}");
+        if cache_enabled {
+            if let Err(err) = schema_cache.save(path_buf.as_path()) {
+                eprintln!("failed to persist doc cache: {err}");
+            }
         }
         let docs = path_buf.join(self.get_doc_file_path());
 
@@ -156,15 +163,8 @@ impl GenDoc for AxumGenDoc {
         };
         let syntax_tree: syn::File = syn::parse2(doc_code).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
-        let should_write = fs::read_to_string(docs.as_path())
-            .map(|existing| existing != formatted)
-            .unwrap_or(true);
-        if should_write {
-            if let Some(parent) = docs.parent() {
-                fs::create_dir_all(parent).expect("create doc directory error");
-            }
-            fs::write(docs.as_path(), formatted).expect("create file failed");
-        }
+        let _ =
+            write_if_changed(docs.as_path(), formatted.as_str()).expect("write doc file failed");
         // let output = Command::new("rustfmt")
         //     .arg(docs.as_path())
         //     .output()
@@ -191,18 +191,25 @@ impl AxumGenDoc {
         cache: &mut DocSchemaCache,
         base_path: &Path,
         crate_cache: &mut HashMap<PathBuf, CrateContext>,
+        cache_enabled: bool,
     ) {
         for rs_file in rs_files {
-            let fingerprint = FileFingerprint::from_path(rs_file.as_path()).ok();
-            if let Some(fp) = fingerprint.as_ref() {
-                if let Some(entry) = cache.get(base_path, rs_file.as_path(), fp) {
-                    for value in &entry.structs {
-                        struct_paths.insert(value.clone());
+            let fingerprint = if cache_enabled {
+                FileFingerprint::from_path(rs_file.as_path()).ok()
+            } else {
+                None
+            };
+            if cache_enabled {
+                if let Some(fp) = fingerprint.as_ref() {
+                    if let Some(entry) = cache.get(base_path, rs_file.as_path(), fp) {
+                        for value in &entry.structs {
+                            struct_paths.insert(value.clone());
+                        }
+                        for value in &entry.enums {
+                            enum_paths.insert(value.clone());
+                        }
+                        continue;
                     }
-                    for value in &entry.enums {
-                        enum_paths.insert(value.clone());
-                    }
-                    continue;
                 }
             }
 
@@ -214,8 +221,10 @@ impl AxumGenDoc {
             for value in &enums {
                 enum_paths.insert(value.clone());
             }
-            if let Some(fp) = fingerprint {
-                cache.update(base_path, rs_file.as_path(), &fp, structs, enums);
+            if cache_enabled {
+                if let Some(fp) = fingerprint {
+                    cache.update(base_path, rs_file.as_path(), &fp, structs, enums);
+                }
             }
         }
     }

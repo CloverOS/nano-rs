@@ -1,10 +1,10 @@
 use crate::axum::generator::cache;
 #[cfg(feature = "utoipa_axum")]
 use crate::axum::generator::parse_utoipa_info;
+use crate::axum::generator::write_if_changed;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::collections::HashMap;
-use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use syn::punctuated::Punctuated;
@@ -24,6 +24,7 @@ impl GenApiInfo for AxumGenApiInfo {
             String,
             ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
         >,
+        cache_enabled: bool,
     ) {
         eprintln!("gen_api_info in {:?}", path_buf);
         let api_info = path_buf.join(self.get_api_info_file_path());
@@ -35,26 +36,30 @@ impl GenApiInfo for AxumGenApiInfo {
         }
         let mut entries: Vec<_> = api_fns.iter().collect();
         entries.sort_by(|(left, _), (right, _)| left.cmp(right));
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        for (key, api_fn) in &entries {
-            key.hash(&mut hasher);
-            api_fn.method.hash(&mut hasher);
-            api_fn.path.hash(&mut hasher);
-            api_fn.path_group.hash(&mut hasher);
-            api_fn.api_fn_name.hash(&mut hasher);
-            api_fn.public.hash(&mut hasher);
-            if let Some(api_doc) = &api_fn.api_fn_doc {
-                api_doc.api.hash(&mut hasher);
-                api_doc.api_group.hash(&mut hasher);
+        let mut fingerprint: Option<String> = None;
+        if cache_enabled {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            for (key, api_fn) in &entries {
+                key.hash(&mut hasher);
+                api_fn.method.hash(&mut hasher);
+                api_fn.path.hash(&mut hasher);
+                api_fn.path_group.hash(&mut hasher);
+                api_fn.api_fn_name.hash(&mut hasher);
+                api_fn.public.hash(&mut hasher);
+                if let Some(api_doc) = &api_fn.api_fn_doc {
+                    api_doc.api.hash(&mut hasher);
+                    api_doc.api_group.hash(&mut hasher);
+                }
             }
-        }
-        let fingerprint = hasher.finish().to_string();
-        let cache_hit = cache::read_api_info_hash(path_buf.as_path())
-            .ok()
-            .filter(|stored| stored == &fingerprint)
-            .is_some();
-        if cache_hit && api_info.exists() {
-            return;
+            let fingerprint_value = hasher.finish().to_string();
+            let cache_hit = cache::read_api_info_hash(path_buf.as_path())
+                .ok()
+                .filter(|stored| stored == &fingerprint_value)
+                .is_some();
+            if cache_hit && api_info.exists() {
+                return;
+            }
+            fingerprint = Some(fingerprint_value);
         }
 
         let mut api_info_vec: Vec<TokenStream> = Vec::new();
@@ -103,17 +108,14 @@ impl GenApiInfo for AxumGenApiInfo {
 
         let syntax_tree: syn::File = syn::parse2(api_info_code).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
-        let should_write = fs::read_to_string(api_info.as_path())
-            .map(|existing| existing != formatted)
-            .unwrap_or(true);
-        if should_write {
-            if let Some(parent) = api_info.parent() {
-                fs::create_dir_all(parent).expect("create api info directory error");
+        let _ = write_if_changed(api_info.as_path(), formatted.as_str())
+            .expect("write api info file failed");
+        if cache_enabled {
+            if let Some(fingerprint) = fingerprint.as_ref() {
+                if let Err(err) = cache::write_api_info_hash(path_buf.as_path(), fingerprint) {
+                    eprintln!("failed to persist api info cache: {err}");
+                }
             }
-            fs::write(api_info.as_path(), formatted).expect("create file failed");
-        }
-        if let Err(err) = cache::write_api_info_hash(path_buf.as_path(), &fingerprint) {
-            eprintln!("failed to persist api info cache: {err}");
         }
         // let output = Command::new("rustfmt")
         //     .arg(api_info.as_path())

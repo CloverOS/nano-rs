@@ -14,10 +14,15 @@ pub struct NanoBuilder {
     api_fns: HashMap<String, ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>>,
     api_gen_path: PathBuf,
     rs_files: Vec<PathBuf>,
+    use_cache: bool,
 }
 
 impl NanoBuilder {
     pub fn new(path: Option<PathBuf>) -> Self {
+        Self::new_with_cache(path, false)
+    }
+
+    pub fn new_with_cache(path: Option<PathBuf>, use_cache: bool) -> Self {
         let api_gen_path;
         if let Some(path_buf) = path {
             api_gen_path = path_buf;
@@ -33,6 +38,7 @@ impl NanoBuilder {
             api_fns,
             api_gen_path,
             rs_files,
+            use_cache,
         }
     }
 
@@ -41,6 +47,7 @@ impl NanoBuilder {
             self.rs_files.clone(),
             self.clone().api_gen_path,
             self.api_fns.clone(),
+            self.use_cache,
         );
         self
     }
@@ -50,12 +57,17 @@ impl NanoBuilder {
             self.rs_files.clone(),
             self.clone().api_gen_path,
             self.api_fns.clone(),
+            self.use_cache,
         );
         self
     }
 
     pub fn gen_api_info(&mut self, gen_api_info: impl GenApiInfo) -> &mut Self {
-        gen_api_info.gen_api_info(self.clone().api_gen_path, self.api_fns.clone());
+        gen_api_info.gen_api_info(
+            self.clone().api_gen_path,
+            self.api_fns.clone(),
+            self.use_cache,
+        );
         self
     }
 }
