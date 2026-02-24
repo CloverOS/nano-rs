@@ -44,7 +44,9 @@ pub trait AxumGen {
         match tree {
             UseTree::Path(UsePath { ident, tree, .. }) => {
                 parent_path.push(ident.clone());
-                self.match_use_tree(tree, type_name, parent_path)
+                let matched = self.match_use_tree(tree, type_name, parent_path);
+                parent_path.pop();
+                matched
             }
             UseTree::Name(UseName { ident }) => {
                 if ident == type_name {
