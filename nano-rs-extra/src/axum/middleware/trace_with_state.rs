@@ -1,4 +1,6 @@
-use crate::axum::middleware::trace::{buffer_printer, RequestInfo};
+use crate::axum::middleware::trace::{
+    RequestInfo, buffer_printer, resolve_request_id, set_request_id_header,
+};
 use axum::body::Body;
 use axum::extract::{Request, State};
 use axum::http::{Response, StatusCode};
@@ -30,12 +32,15 @@ pub async fn trace_http_with_state(
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let request_id = resolve_request_id(req.headers());
     if should_ignore_trace(
         &log_config,
         &req.method().to_string(),
         &req.uri().path().to_string(),
     ) {
-        return Ok(next.run(req).await);
+        let mut res = next.run(req).await;
+        set_request_id_header(res.headers_mut(), &request_id);
+        return Ok(res);
     }
     let start = Instant::now();
 
@@ -45,11 +50,13 @@ pub async fn trace_http_with_state(
         secure_ip.to_string(),
     );
 
-    let res = next.run(req).await;
+    let mut res = next.run(req).await;
+    set_request_id_header(res.headers_mut(), &request_id);
 
     let duration = start.elapsed();
     tracing::info!(
-        "method:{} path:{} ip:{} duration:{:?}",
+        "request_id:{} method:{} path:{} ip:{} duration:{:?}",
+        request_id,
         method,
         path,
         ip,
@@ -65,16 +72,20 @@ pub async fn trace_http_with_request_body_with_state(
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let request_id = resolve_request_id(req.headers());
     if should_ignore_trace(
         &log_config,
         &req.method().to_string(),
         &req.uri().path().to_string(),
     ) {
-        return Ok(next.run(req).await);
+        let mut res = next.run(req).await;
+        set_request_id_header(res.headers_mut(), &request_id);
+        return Ok(res);
     }
 
     let start = Instant::now();
     let mut req_info = RequestInfo {
+        request_id: request_id.clone(),
         method: String::from(&req.method().to_string()),
         path: String::from(&req.uri().to_string()),
         ip: secure_ip.0.to_string(),
@@ -90,7 +101,8 @@ pub async fn trace_http_with_request_body_with_state(
     }
     let req = Request::from_parts(parts, Body::from(bytes));
 
-    let res = next.run(req).await;
+    let mut res = next.run(req).await;
+    set_request_id_header(res.headers_mut(), &request_id);
 
     let duration = start.elapsed();
     req_info.duration = format!("{:?}", duration);
@@ -105,11 +117,13 @@ pub async fn trace_http_with_request_body_and_response_body_with_state(
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let request_id = resolve_request_id(req.headers());
     // 检查WebSocket升级请求
     if let Some(upgrade) = req.headers().get("upgrade") {
         if let Ok(upgrade_str) = upgrade.to_str() {
             if upgrade_str.eq_ignore_ascii_case("websocket") {
-                let res = next.run(req).await;
+                let mut res = next.run(req).await;
+                set_request_id_header(res.headers_mut(), &request_id);
                 return Ok(res);
             }
         }
@@ -119,7 +133,8 @@ pub async fn trace_http_with_request_body_and_response_body_with_state(
     if let Some(accept) = req.headers().get("accept") {
         if let Ok(accept_str) = accept.to_str() {
             if accept_str.contains("text/event-stream") {
-                let res = next.run(req).await;
+                let mut res = next.run(req).await;
+                set_request_id_header(res.headers_mut(), &request_id);
                 return Ok(res);
             }
         }
@@ -129,10 +144,13 @@ pub async fn trace_http_with_request_body_and_response_body_with_state(
         &req.method().to_string(),
         &req.uri().path().to_string(),
     ) {
-        return Ok(next.run(req).await);
+        let mut res = next.run(req).await;
+        set_request_id_header(res.headers_mut(), &request_id);
+        return Ok(res);
     }
     let start = Instant::now();
     let mut req_info = RequestInfo {
+        request_id: request_id.clone(),
         method: String::from(&req.method().to_string()),
         path: String::from(&req.uri().to_string()),
         ip: secure_ip.0.to_string(),
@@ -154,7 +172,8 @@ pub async fn trace_http_with_request_body_and_response_body_with_state(
     if let Ok(body) = std::str::from_utf8(&bytes) {
         req_info.resp_body = Some(body.to_string());
     }
-    let res = Response::from_parts(parts, Body::from(bytes));
+    let mut res = Response::from_parts(parts, Body::from(bytes));
+    set_request_id_header(res.headers_mut(), &request_id);
 
     let duration = start.elapsed();
     req_info.duration = format!("{:?}", duration);
