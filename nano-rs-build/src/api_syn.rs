@@ -1,6 +1,6 @@
-use syn::{LitBool, LitStr, Token};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
+use syn::{LitBool, LitStr, Token};
 
 pub mod api_key_word {
     syn::custom_keyword!(path);
@@ -29,6 +29,10 @@ impl Parse for ApiMacroInfo {
         let mut api_token = None;
         let mut open_token = None;
         while !input.is_empty() {
+            if input.peek(Token![,]) {
+                let _: Token![,] = input.parse()?;
+                continue;
+            }
             let lookahead = input.lookahead1();
             if lookahead.peek(api_key_word::path) {
                 if path_token.is_some() {
@@ -36,7 +40,7 @@ impl Parse for ApiMacroInfo {
                 }
                 path_token = Some(input.parse::<PathToken>()?);
             } else if lookahead.peek(api_key_word::path_group) {
-                if path_token.is_some() {
+                if path_group_token.is_some() {
                     return Err(input.error("Duplicate 'path_group' keyword"));
                 }
                 path_group_token = Some(input.parse::<PathGroupToken>()?);
@@ -61,7 +65,7 @@ impl Parse for ApiMacroInfo {
                 }
                 open_token = Some(input.parse::<OpenToken>()?);
             } else {
-                // 否则不处理
+                return Err(lookahead.error());
             }
 
             // 可以消耗逗号分隔符，如果有的话；这样也能支持逗号分隔的关键字列表
@@ -125,7 +129,8 @@ impl Parse for LayersToken {
         let eq_token = input.parse::<Token![=]>()?;
         let content;
         syn::bracketed!(content in input);
-        let value_token = content.parse_terminated(|input: ParseStream| input.parse::<LitStr>(), Token![,])?;
+        let value_token =
+            content.parse_terminated(|input: ParseStream| input.parse::<LitStr>(), Token![,])?;
 
         Ok(LayersToken {
             layers_token: layers,

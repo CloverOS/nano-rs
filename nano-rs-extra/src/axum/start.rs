@@ -1,10 +1,10 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
+use axum::Router;
 use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::routing::Route;
-use axum::Router;
 use axum_client_ip;
 use axum_client_ip::ClientIpSource;
 use nano_rs_core::config::logger::LogConfig;
@@ -69,8 +69,7 @@ impl AppStarter {
         let address = format!("{}:{}", host, port);
         let listener = tokio::net::TcpListener::bind(address).await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
-        let link = format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url, url);
-        tracing::info!("listening on {}", link);
+        tracing::info!("listening on {}", url);
         axum::serve(
             listener,
             self.app

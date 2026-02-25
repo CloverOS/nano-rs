@@ -1,6 +1,9 @@
 #[cfg(feature = "utoipa_axum")]
 use nano_rs_build::api_fn::ApiFn;
 use proc_macro2::Ident;
+use std::fs;
+use std::io;
+use std::path::Path;
 #[cfg(feature = "utoipa_axum")]
 use syn::punctuated::Punctuated;
 #[cfg(feature = "utoipa_axum")]
@@ -9,12 +12,27 @@ use syn::token::Comma;
 use syn::{Attribute, FnArg};
 use syn::{ItemUse, UseGroup, UseName, UsePath, UseRename, UseTree};
 
+pub(crate) mod cache;
 pub mod gen_api_info;
 pub mod gen_doc;
 pub mod gen_route;
 
 #[cfg(feature = "utoipa_axum")]
 pub const UTOIPA_PATH: &str = "utoipapath";
+
+pub(crate) fn write_if_changed(path: &Path, contents: &str) -> io::Result<bool> {
+    match fs::read(path) {
+        Ok(existing) if existing == contents.as_bytes() => return Ok(false),
+        Ok(_) => {}
+        Err(err) if err.kind() == io::ErrorKind::NotFound => {}
+        Err(err) => return Err(err),
+    }
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, contents)?;
+    Ok(true)
+}
 
 pub trait AxumGen {
     fn match_use_tree(
@@ -26,7 +44,9 @@ pub trait AxumGen {
         match tree {
             UseTree::Path(UsePath { ident, tree, .. }) => {
                 parent_path.push(ident.clone());
-                self.match_use_tree(tree, type_name, parent_path)
+                let matched = self.match_use_tree(tree, type_name, parent_path);
+                parent_path.pop();
+                matched
             }
             UseTree::Name(UseName { ident }) => {
                 if ident == type_name {

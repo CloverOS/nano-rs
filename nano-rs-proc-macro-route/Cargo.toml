@@ -1,15 +1,15 @@
 [package]
-name = "nano-rs-proc-macro-route"
-version = "0.1.0"
-edition = "2021"
-categories = ["network-programming", "web-programming", "config"]
+categories = ["config", "network-programming", "web-programming"]
 description = "Light Web Kit"
-rust-version = "1.66"
+edition = "2024"
 homepage = "https://github.com/CloverOS/nano-rs"
-keywords = ["http", "web", "config", "auto-route"]
+keywords = ["auto-route", "config", "http", "web"]
 license = "MIT"
+name = "nano-rs-proc-macro-route"
 readme = "README.md"
 repository = "https://github.com/CloverOS/nano-rs"
+rust-version = "1.85.0"
+version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -48,7 +48,7 @@
 
 ### Environment Requirements
 
-MSRV >= 1.66
+MSRV >= 1.85
 
 ### Installation
 

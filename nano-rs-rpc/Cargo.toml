@@ -1,20 +1,20 @@
-[package]
-name = "nano-rs-rpc"
-version = "0.1.0"
-edition = "2021"
-categories = ["network-programming", "web-programming", "config"]
-description = "Light Web Kit"
-rust-version = "1.66"
-homepage = "https://github.com/CloverOS/nano-rs"
-keywords = ["http", "web", "config", "auto-route"]
-license = "MIT"
-readme = "README.md"
-repository = "https://github.com/CloverOS/nano-rs"
+# [package]
+# categories = ["config", "network-programming", "web-programming"]
+# description = "Light Web Kit"
+# edition = "2024"
+# homepage = "https://github.com/CloverOS/nano-rs"
+# keywords = ["auto-route", "config", "http", "web"]
+# license = "MIT"
+# name = "nano-rs-rpc"
+# readme = "README.md"
+# repository = "https://github.com/CloverOS/nano-rs"
+# rust-version = "1.85.0"
+# version = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-tonic = { workspace = true }
-etcd-client = { workspace = true }
-nano-rs-core = { path = "../nano-rs-core" }
-tower = { workspace = true }
+# [dependencies]
+# etcd-client = { workspace = true }
+# nano-rs-core = { path = "../nano-rs-core" }
+# tonic = { workspace = true }
+# tower = { workspace = true }

@@ -1,18 +1,18 @@
 #[cfg(feature = "utoipa_axum")]
 use crate::axum::generator::parse_utoipa_info;
-use crate::axum::generator::AxumGen;
+use crate::axum::generator::{AxumGen, cache, write_if_changed};
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenRoute;
-use quote::__private::{Span, TokenStream};
-use quote::quote;
+use proc_macro2::{Span, TokenStream};
+use quote::{ToTokens, quote};
 use std::collections::HashMap;
-use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{
-    parse_quote, parse_str, Attribute, Expr, ExprPath, FnArg, GenericArgument, Ident, ItemUse,
-    PathArguments, PathSegment, Type, TypePath,
+    Attribute, Expr, ExprPath, FnArg, GenericArgument, Ident, ItemUse, PathArguments, PathSegment,
+    Type, TypePath, parse_quote, parse_str,
 };
 
 const STATE: &str = "State";
@@ -32,12 +32,55 @@ impl GenRoute for AxumGenRoute {
             String,
             ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
         >,
+        cache_enabled: bool,
     ) {
         eprintln!("AxumGenRoute gen_route in {:?}", path_buf);
         let routes = path_buf.join(self.get_routes_file_path());
-        if !routes.exists() {
-            fs::write(routes.as_path(), "").expect("create routes files error");
+        #[allow(unused_mut)]
+        let mut api_fns = api_fns;
+        #[cfg(feature = "utoipa_axum")]
+        for api_fn in api_fns.values_mut() {
+            parse_utoipa_info(api_fn);
         }
+        let mut fingerprint: Option<String> = None;
+        if cache_enabled {
+            let mut entries: Vec<_> = api_fns.iter().collect();
+            entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            for (name, api_fn) in &entries {
+                name.hash(&mut hasher);
+                api_fn.method.hash(&mut hasher);
+                api_fn.path.hash(&mut hasher);
+                api_fn.path_group.hash(&mut hasher);
+                api_fn.api_fn_name.hash(&mut hasher);
+                api_fn.public.hash(&mut hasher);
+                if let Some(layers) = &api_fn.layers_fn_name {
+                    for layer in layers {
+                        layer.hash(&mut hasher);
+                    }
+                }
+                if let Some(inputs) = &api_fn.inputs {
+                    for input in inputs.iter() {
+                        input.to_token_stream().to_string().hash(&mut hasher);
+                    }
+                }
+                if let Some(use_items) = &api_fn.use_crate {
+                    for item_use in use_items {
+                        item_use.to_token_stream().to_string().hash(&mut hasher);
+                    }
+                }
+            }
+            let fingerprint_value = hasher.finish().to_string();
+            let cache_hit = cache::read_route_hash(path_buf.as_path())
+                .ok()
+                .filter(|stored| stored == &fingerprint_value)
+                .is_some();
+            if cache_hit && routes.exists() {
+                return;
+            }
+            fingerprint = Some(fingerprint_value);
+        }
+
         let mut fn_route_code: HashMap<String, Vec<TokenStream>> = HashMap::new();
         let mut use_crate: HashMap<String, bool> = HashMap::new();
 
@@ -222,9 +265,17 @@ impl GenRoute for AxumGenRoute {
 
             #routes_code
         );
-        let syntax_tree = syn::parse_file(complete_code.to_string().as_str()).unwrap();
+        let syntax_tree: syn::File = syn::parse2(complete_code).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
-        fs::write(routes.as_path(), formatted).expect("create file failed");
+        let _ = write_if_changed(routes.as_path(), formatted.as_str())
+            .expect("write route file failed");
+        if cache_enabled {
+            if let Some(fingerprint) = fingerprint.as_ref() {
+                if let Err(err) = cache::write_route_hash(path_buf.as_path(), fingerprint) {
+                    eprintln!("failed to persist route cache: {err}");
+                }
+            }
+        }
         // let output = Command::new("rustfmt")
         //     .arg(routes.as_path())
         //     .output()
@@ -303,10 +354,8 @@ impl AxumGenRoute {
         use_crate_map: &mut HashMap<String, bool>,
     ) {
         for (name, api_fn) in api_fns.iter_mut() {
-            #[cfg(feature = "utoipa_axum")]
-            parse_utoipa_info(api_fn);
-            let path = api_fn.clone().path;
-            if let Some(inputs) = api_fn.inputs.clone() {
+            let path = api_fn.path.clone();
+            if let Some(inputs) = api_fn.inputs.as_ref() {
                 if inputs.is_empty() {
                     let key = self.get_fn_code_key(api_fn, None);
                     self.insert_all_route(fn_route_code, use_crate_map, name, api_fn, &path, key);
@@ -327,10 +376,10 @@ impl AxumGenRoute {
                                                     self.get_state_type_vec(&segment, vec![]);
                                                 for x in tp_vec {
                                                     if let Some(use_crate) =
-                                                        api_fn.use_crate.clone()
+                                                        api_fn.use_crate.as_ref()
                                                     {
                                                         if let Some(use_string) =
-                                                            self.get_full_crate_name(x, &use_crate)
+                                                            self.get_full_crate_name(x, use_crate)
                                                         {
                                                             let key = self.get_fn_code_key(
                                                                 api_fn,

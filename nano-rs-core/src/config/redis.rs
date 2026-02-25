@@ -40,12 +40,17 @@ impl RedisConfig {
 
 impl NodeConfig {
     pub fn get_node_url(&self) -> String {
-        let mut url = format!("{}:{}", self.host.clone().unwrap_or("127.0.0.1".to_string()), self.port.clone().unwrap_or(3306));
+        let mut url = format!(
+            "{}:{}",
+            self.host.clone().unwrap_or("127.0.0.1".to_string()),
+            self.port.clone().unwrap_or(6379)
+        );
         if let Some(redis_auth) = self.redis_auth.clone() {
-            url = format!("{}@{}", redis_auth.password, url);
-            if let Some(user_name) = redis_auth.user_name.clone() {
-                url = format!("{}:{}", user_name, url)
-            }
+            url = if let Some(user_name) = redis_auth.user_name.clone() {
+                format!("{}:{}@{}", user_name, redis_auth.password, url)
+            } else {
+                format!(":{}@{}", redis_auth.password, url)
+            };
         }
         if self.tls.unwrap_or(false) {
             format!("rediss://{}/{}", url, self.db.unwrap_or(0))
