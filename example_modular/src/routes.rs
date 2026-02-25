@@ -25,11 +25,17 @@ pub fn get_routes_example_modular_model_service_context(
     example_modular_model_service_context: example_modular_model::ServiceContext,
 ) -> Router {
     Router::new()
-        .route("/store/pet/form", post(example_modular_api::store::add_form_pet))
-        .route("/store/pet/json", post(example_modular_api::store::add_json_pet))
+        .route(
+            "/store/pet/form",
+            post(example_modular_api::store::add_form_pet::handler),
+        )
+        .route(
+            "/store/pet/json",
+            post(example_modular_api::store::add_json_pet::handler),
+        )
         .route(
             "/store/pet/list/{page}/{count}",
-            post(example_modular_api::store::pet_page_list),
+            post(example_modular_api::store::pet_page_list::handler),
         )
         .with_state(example_modular_model_service_context)
 }
@@ -38,7 +44,7 @@ pub fn get_routes_example_modular_model_service_context_with_layer_example_modul
 ) -> Router {
     Router::new()
         .route("/samoyed/shower", post(example_modular_api::samoyed::shower))
-        .route("/store/tel", get(example_modular_api::store::get_store_tel))
+        .route("/store/tel", get(example_modular_api::store::get_store_tel::handler))
         .route_layer(
             axum::middleware::from_fn_with_state(
                 example_modular_model_service_context.clone(),
@@ -50,12 +56,12 @@ pub fn get_routes_example_modular_model_service_context_with_layer_example_modul
 pub fn get_routes_without_state() -> Router {
     Router::new()
         .route("/samoyed/name", get(example_modular_api::samoyed::name))
-        .route("/store/pet", get(example_modular_api::store::query_pet))
-        .route("/store/pet/{id}", get(example_modular_api::store::get_pet))
+        .route("/store/pet", get(example_modular_api::store::query_pet::handler))
+        .route("/store/pet/{id}", get(example_modular_api::store::get_pet::handler))
 }
 pub fn get_routes_without_state_with_layer_example_modular_layers_auth_auth_token1() -> Router {
     Router::new()
-        .route("/store/name", get(example_modular_api::store::get_store_name))
+        .route("/store/name", get(example_modular_api::store::get_store_name::handler))
         .route_layer(
             axum::middleware::from_fn(example_modular_layers::auth::auth_token1),
         )

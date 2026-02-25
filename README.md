@@ -226,7 +226,7 @@ pub mod store;
 ```
 
 - With module-level `/// @tag ...`, handlers in that module can omit `tag`.
-- For nested modules, only the top-level module tag is used.
+- For nested modules, handlers inherit the nearest ancestor module tag unless the child module declares its own `/// @tag ...`.
 - If both `#[utoipa::path]` and `#[get]/#[post]` are present, utoipa metadata takes priority.
 - Run build once (only needed for the project's first compilation)
 

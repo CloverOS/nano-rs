@@ -273,13 +273,15 @@ pub fn parse_fn_item_in_mod(
             }
             Item::Mod(mod_item) => {
                 let nested_mod_name = format!("{}::{}", mod_name, mod_item.ident);
+                let nested_default_tag =
+                    parse_mod_tag_attr(&mod_item.attrs).or_else(|| default_tag.map(str::to_string));
                 parse_fn_item_in_mod(
                     fns,
                     mod_item,
                     nested_mod_name.as_str(),
                     path_buf.clone(),
                     crate_ctx,
-                    default_tag,
+                    nested_default_tag.as_deref(),
                 )?;
             }
             _ => {}

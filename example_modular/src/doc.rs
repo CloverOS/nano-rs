@@ -36,7 +36,7 @@ fn __nano_auto_doc_1_shower() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_2_add_form_pet() {}
+fn __nano_auto_doc_2_handler() {}
 #[utoipa::path(
     post,
     path = "/store/pet/json",
@@ -48,7 +48,7 @@ fn __nano_auto_doc_2_add_form_pet() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_3_add_json_pet() {}
+fn __nano_auto_doc_3_handler() {}
 #[utoipa::path(
     get,
     path = "/store/pet/{id}",
@@ -60,7 +60,7 @@ fn __nano_auto_doc_3_add_json_pet() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_4_get_pet() {}
+fn __nano_auto_doc_4_handler() {}
 #[utoipa::path(
     get,
     path = "/store/name",
@@ -71,7 +71,7 @@ fn __nano_auto_doc_4_get_pet() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_5_get_store_name() {}
+fn __nano_auto_doc_5_handler() {}
 #[utoipa::path(
     get,
     path = "/store/tel",
@@ -82,7 +82,7 @@ fn __nano_auto_doc_5_get_store_name() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_6_get_store_tel() {}
+fn __nano_auto_doc_6_handler() {}
 #[utoipa::path(
     post,
     path = "/store/pet/list/{page}/{count}",
@@ -94,7 +94,7 @@ fn __nano_auto_doc_6_get_store_tel() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_7_pet_page_list() {}
+fn __nano_auto_doc_7_handler() {}
 #[utoipa::path(
     get,
     path = "/store/pet",
@@ -106,7 +106,7 @@ fn __nano_auto_doc_7_pet_page_list() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_8_query_pet() {}
+fn __nano_auto_doc_8_handler() {}
 #[derive(OpenApi)]
 #[openapi(
     info(
@@ -119,13 +119,13 @@ fn __nano_auto_doc_8_query_pet() {}
     paths(
         __nano_auto_doc_0_name,
         __nano_auto_doc_1_shower,
-        __nano_auto_doc_2_add_form_pet,
-        __nano_auto_doc_3_add_json_pet,
-        __nano_auto_doc_4_get_pet,
-        __nano_auto_doc_5_get_store_name,
-        __nano_auto_doc_6_get_store_tel,
-        __nano_auto_doc_7_pet_page_list,
-        __nano_auto_doc_8_query_pet
+        __nano_auto_doc_2_handler,
+        __nano_auto_doc_3_handler,
+        __nano_auto_doc_4_handler,
+        __nano_auto_doc_5_handler,
+        __nano_auto_doc_6_handler,
+        __nano_auto_doc_7_handler,
+        __nano_auto_doc_8_handler
     ),
     components(
         schemas(

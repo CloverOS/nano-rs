@@ -19,6 +19,53 @@ struct ParsedRsFile {
     syntax_tree: syn::File,
 }
 
+fn collect_module_tags(
+    items: &[Item],
+    path: &Path,
+    crate_ctx: &CrateContext,
+    parent_mod_name: Option<&str>,
+    module_tag_index: &mut HashMap<String, String>,
+) {
+    for item in items {
+        if let Item::Mod(item_mod) = item {
+            let mod_ident = item_mod.ident.to_string();
+            if let Some(tag) = parse_mod_tag_attr(&item_mod.attrs) {
+                let module_path =
+                    gen_fn_full_crate_path(crate_ctx, path, mod_ident.clone(), parent_mod_name);
+                module_tag_index.insert(module_path, tag);
+            }
+            if let Some((_, nested_items)) = &item_mod.content {
+                let nested_mod_name = if let Some(parent) = parent_mod_name {
+                    format!("{parent}::{}", item_mod.ident)
+                } else {
+                    item_mod.ident.to_string()
+                };
+                collect_module_tags(
+                    nested_items,
+                    path,
+                    crate_ctx,
+                    Some(nested_mod_name.as_str()),
+                    module_tag_index,
+                );
+            }
+        }
+    }
+}
+
+fn resolve_default_tag(
+    module_tag_index: &HashMap<String, String>,
+    module_path: &str,
+) -> Option<String> {
+    let mut current_path = Some(module_path.to_string());
+    while let Some(path) = current_path {
+        if let Some(tag) = module_tag_index.get(&path) {
+            return Some(tag.clone());
+        }
+        current_path = path.rsplit_once("::").map(|(parent, _)| parent.to_string());
+    }
+    None
+}
+
 /// 构建API接口信息结构体
 /// Build API interface information structure
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -77,25 +124,19 @@ pub fn get_rs_files_fns(
     }
 
     for parsed in parsed_files.iter() {
-        for item in &parsed.syntax_tree.items {
-            if let Item::Mod(item_mod) = item {
-                if let Some(tag) = parse_mod_tag_attr(&item_mod.attrs) {
-                    let module_path = gen_fn_full_crate_path(
-                        &parsed.crate_ctx,
-                        parsed.path.as_path(),
-                        item_mod.ident.to_string(),
-                        None,
-                    );
-                    module_tag_index.insert(module_path, tag);
-                }
-            }
-        }
+        collect_module_tags(
+            &parsed.syntax_tree.items,
+            parsed.path.as_path(),
+            &parsed.crate_ctx,
+            None,
+            &mut module_tag_index,
+        );
     }
 
     for parsed_file in parsed_files {
         let file_module_path =
             gen_file_crate_module_path(&parsed_file.crate_ctx, parsed_file.path.as_path());
-        let file_default_tag = module_tag_index.get(&file_module_path).cloned();
+        let file_default_tag = resolve_default_tag(&module_tag_index, &file_module_path);
         //先获取全部的use,防止有些文件没有进行rustfmt
         let mut item_uses: Vec<ItemUse> = vec![];
         for item in &parsed_file.syntax_tree.items {
@@ -140,4 +181,30 @@ pub fn get_rs_files_fns(
         }
     }
     Ok(fns)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_default_tag;
+    use std::collections::HashMap;
+
+    #[test]
+    fn resolve_default_tag_uses_nearest_ancestor() {
+        let mut module_tag_index = HashMap::new();
+        module_tag_index.insert("crate::api".to_string(), "Api".to_string());
+        module_tag_index.insert("crate::api::v1".to_string(), "ApiV1".to_string());
+
+        assert_eq!(
+            resolve_default_tag(&module_tag_index, "crate::api::v1::key"),
+            Some("ApiV1".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_default_tag_returns_none_without_ancestor() {
+        let mut module_tag_index = HashMap::new();
+        module_tag_index.insert("crate::api".to_string(), "Api".to_string());
+
+        assert_eq!(resolve_default_tag(&module_tag_index, "crate::other"), None);
+    }
 }
