@@ -25,6 +25,10 @@ pub fn get_api_info() -> Vec<ApiInfo> {
         .to_owned(), base_path : "".to_owned(), handler_fun : "handler".to_owned(),
         summary : "Get Store's telephone number".to_owned(), public : false, group_name :
         "Store".to_owned(), }, ApiInfo { method : "post".to_owned(), path :
+        "/store/pet/page-data/{page}/{count}".to_owned(), base_path : "".to_owned(),
+        handler_fun : "handler".to_owned(), summary :
+        "Get pet list with page data wrapper".to_owned(), public : false, group_name :
+        "Store".to_owned(), }, ApiInfo { method : "post".to_owned(), path :
         "/store/pet/list/{page}/{count}".to_owned(), base_path : "".to_owned(),
         handler_fun : "handler".to_owned(), summary : "Get pet list".to_owned(), public :
         false, group_name : "Store".to_owned(), }, ApiInfo { method : "get".to_owned(),

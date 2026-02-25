@@ -85,6 +85,21 @@ fn __nano_auto_doc_5_handler() {}
 fn __nano_auto_doc_6_handler() {}
 #[utoipa::path(
     post,
+    path = "/store/pet/page-data/{page}/{count}",
+    tag = "Store",
+    summary = "Get pet list with page data wrapper",
+    params(example_modular_model::Page),
+    responses(
+        (
+            status = 200,
+            body = example_modular_model::PageData<example_modular_model::Pet>
+        ),
+        (status = 500, description = "Internal Server Error")
+    )
+)]
+fn __nano_auto_doc_7_handler() {}
+#[utoipa::path(
+    post,
     path = "/store/pet/list/{page}/{count}",
     tag = "Store",
     summary = "Get pet list",
@@ -94,7 +109,7 @@ fn __nano_auto_doc_6_handler() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_7_handler() {}
+fn __nano_auto_doc_8_handler() {}
 #[utoipa::path(
     get,
     path = "/store/pet",
@@ -106,7 +121,7 @@ fn __nano_auto_doc_7_handler() {}
         (status = 500, description = "Internal Server Error")
     )
 )]
-fn __nano_auto_doc_8_handler() {}
+fn __nano_auto_doc_9_handler() {}
 #[derive(OpenApi)]
 #[openapi(
     info(
@@ -125,7 +140,8 @@ fn __nano_auto_doc_8_handler() {}
         __nano_auto_doc_5_handler,
         __nano_auto_doc_6_handler,
         __nano_auto_doc_7_handler,
-        __nano_auto_doc_8_handler
+        __nano_auto_doc_8_handler,
+        __nano_auto_doc_9_handler
     ),
     components(
         schemas(

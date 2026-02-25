@@ -40,6 +40,6 @@ pub struct Params {
 
 #[derive(Debug, Deserialize, Serialize, IntoParams)]
 pub struct Page {
-    pub page: i64,
-    pub count: i64,
+    pub page: u64,
+    pub count: u64,
 }

@@ -37,6 +37,10 @@ pub fn get_routes_example_modular_model_service_context(
             "/store/pet/list/{page}/{count}",
             post(example_modular_api::store::pet_page_list::handler),
         )
+        .route(
+            "/store/pet/page-data/{page}/{count}",
+            post(example_modular_api::store::pet_page_data_list::handler),
+        )
         .with_state(example_modular_model_service_context)
 }
 pub fn get_routes_example_modular_model_service_context_with_layer_example_modular_layers_auth_auth_token_example_modular_model_service_context(

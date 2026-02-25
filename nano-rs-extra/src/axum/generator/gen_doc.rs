@@ -511,7 +511,10 @@ impl AxumGenDoc {
                     if self.should_resolve_ident(ident.as_str()) {
                         if let Some(full) = self.resolve_type_ident(ident.as_str(), fn_name, api_fn)
                         {
-                            if let Ok(path) = parse_str::<SynPath>(full.as_str()) {
+                            if let Ok(mut path) = parse_str::<SynPath>(full.as_str()) {
+                                if let Some(last) = path.segments.last_mut() {
+                                    last.arguments = type_path.path.segments[0].arguments.clone();
+                                }
                                 type_path.path = path;
                             }
                         }
@@ -750,7 +753,9 @@ impl AxumGenDoc {
         for item in items {
             match item {
                 Item::Struct(item_struct) => {
-                    if Self::has_to_schema(&item_struct.attrs) {
+                    if Self::has_to_schema(&item_struct.attrs)
+                        && item_struct.generics.params.is_empty()
+                    {
                         let ident = item_struct.ident.to_string();
                         let path = if root_reexports.contains(&ident) {
                             format!("{crate_prefix}::{ident}")
@@ -761,7 +766,9 @@ impl AxumGenDoc {
                     }
                 }
                 Item::Enum(item_enum) => {
-                    if Self::has_to_schema(&item_enum.attrs) {
+                    if Self::has_to_schema(&item_enum.attrs)
+                        && item_enum.generics.params.is_empty()
+                    {
                         let ident = item_enum.ident.to_string();
                         let path = if root_reexports.contains(&ident) {
                             format!("{crate_prefix}::{ident}")
@@ -968,5 +975,105 @@ impl Default for AxumGenDocBuilder {
             external_docs: None,
             extensions: Default::default(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+    use syn::{GenericArgument, parse_file};
+
+    #[test]
+    fn rewrite_type_paths_preserves_generic_arguments() {
+        let doc = AxumGenDoc::new().build();
+        let mut api_fn: ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>> =
+            ApiFn::default();
+        api_fn.use_crate = Some(vec![syn::parse_quote!(use basic_model::{PageData, Pet};)]);
+
+        let mut ty = parse_str::<Type>("PageData<Pet>").expect("parse type");
+        doc.rewrite_type_paths(&mut ty, "crate::api::handler", &api_fn);
+
+        let Type::Path(type_path) = ty else {
+            panic!("expected path type");
+        };
+        assert_eq!(
+            type_path
+                .path
+                .segments
+                .first()
+                .expect("first segment")
+                .ident
+                .to_string(),
+            "basic_model"
+        );
+        let last = type_path.path.segments.last().expect("last segment");
+        assert_eq!(last.ident.to_string(), "PageData");
+
+        let PathArguments::AngleBracketed(args) = &last.arguments else {
+            panic!("expected generic args");
+        };
+        let Some(GenericArgument::Type(Type::Path(inner_ty))) = args.args.first() else {
+            panic!("expected inner type path");
+        };
+        assert_eq!(
+            inner_ty
+                .path
+                .segments
+                .last()
+                .expect("inner last segment")
+                .ident
+                .to_string(),
+            "Pet"
+        );
+    }
+
+    #[test]
+    fn collect_items_skips_generic_schemas() {
+        let doc = AxumGenDoc::new().build();
+        let syntax_tree = parse_file(
+            r#"
+            use utoipa::ToSchema;
+
+            #[derive(ToSchema)]
+            struct PageData<T> {
+                data: Vec<T>,
+            }
+
+            #[derive(ToSchema)]
+            struct Pet {
+                id: i64,
+            }
+
+            #[derive(ToSchema)]
+            enum ResultData<T> {
+                Value(T),
+            }
+
+            #[derive(ToSchema)]
+            enum PetType {
+                Dog,
+                Cat,
+            }
+        "#,
+        )
+        .expect("parse file");
+
+        let mut module_stack = Vec::new();
+        let mut structs = Vec::new();
+        let mut enums = Vec::new();
+        let reexports: HashSet<String> = HashSet::new();
+        doc.collect_items(
+            &syntax_tree.items,
+            "crate::model",
+            "crate",
+            &reexports,
+            &mut module_stack,
+            &mut structs,
+            &mut enums,
+        );
+
+        assert_eq!(structs, vec!["crate::model::Pet".to_string()]);
+        assert_eq!(enums, vec!["crate::model::PetType".to_string()]);
     }
 }
