@@ -36,12 +36,18 @@ impl GenRoute for AxumGenRoute {
     ) {
         eprintln!("AxumGenRoute gen_route in {:?}", path_buf);
         let routes = path_buf.join(self.get_routes_file_path());
-        #[allow(unused_mut)]
-        let mut api_fns = api_fns;
         #[cfg(feature = "utoipa_axum")]
-        for api_fn in api_fns.values_mut() {
-            parse_utoipa_info(api_fn);
-        }
+        let api_fns = {
+            let mut api_fns = api_fns;
+            for api_fn in api_fns.values_mut() {
+                if let Err(err) = parse_utoipa_info(api_fn) {
+                    panic!("{err}");
+                }
+            }
+            api_fns
+        };
+        #[cfg(not(feature = "utoipa_axum"))]
+        let api_fns = api_fns;
         let mut fingerprint: Option<String> = None;
         if cache_enabled {
             let mut entries: Vec<_> = api_fns.iter().collect();

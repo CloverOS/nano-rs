@@ -1,5 +1,7 @@
+/// @tag Store
 pub mod store;
 
+/// @tag Samoyed
 pub mod samoyed {
     use axum::extract::{Path, State};
 
@@ -11,15 +13,7 @@ pub mod samoyed {
     use crate::types::pet::PetShower;
 
     /// Give your Samoyed a bath
-    #[utoipa::path(
-        post,
-        path = "/samoyed/shower",
-        tag = "Samoyed",
-        responses(
-            (status = 200, body = PetShower)
-        )
-    )]
-    #[post(layers = ["crate::layers::auth::auth_token#{crate::ServiceContext}", "crate::layers::auth::auth_token1"])]
+    #[post(path = "/samoyed/shower", layers = ["crate::layers::auth::auth_token#{crate::ServiceContext}", "crate::layers::auth::auth_token1"])]
     pub async fn shower(
         State(_svc): State<ServiceContext>,
     ) -> Result<RestResp<PetShower>, ServerError> {
@@ -30,32 +24,13 @@ pub mod samoyed {
     }
 
     /// Get Samoyed name
-    #[utoipa::path(
-        get,
-        path = "/samoyed/name",
-        tag = "Samoyed",
-        responses(
-            (status = 200, body = String)
-        )
-    )]
-    #[get()]
+    #[get(path = "/samoyed/name")]
     pub async fn name(State(_svc): State<ServiceContext>) -> Result<RestResp<String>, ServerError> {
         biz_ok!("mantou".to_string())
     }
 
     /// Say Hello to name
-    #[utoipa::path(
-        get,
-        path = "/samoyed/{name}",
-        tag = "Samoyed",
-        params(
-            ("name", description = "pet name"),
-        ),
-        responses(
-            (status = 200, body = String)
-        )
-    )]
-    #[get()]
+    #[get(path = "/samoyed/{name}")]
     pub async fn hello(
         Path(name): Path<String>,
         State(_svc): State<ServiceContext>,
@@ -64,15 +39,7 @@ pub mod samoyed {
     }
 
     /// Miss mantou so much
-    #[utoipa::path(
-        get,
-        path = "/samoyed/miss",
-        tag = "Samoyed",
-        responses(
-            (status = 200)
-        )
-    )]
-    #[get()]
+    #[get(path = "/samoyed/miss")]
     pub async fn miss() -> Result<RestResp<String>, ServerError> {
         let _ = std::fs::read("pass")?;
         biz_ok!("pass".to_string())

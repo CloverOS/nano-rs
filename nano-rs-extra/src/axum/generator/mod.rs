@@ -14,6 +14,7 @@ use syn::{ItemUse, UseGroup, UseName, UsePath, UseRename, UseTree};
 
 pub(crate) mod cache;
 pub mod gen_api_info;
+#[cfg(feature = "utoipa_axum")]
 pub mod gen_doc;
 pub mod gen_route;
 
@@ -58,11 +59,7 @@ pub trait AxumGen {
             UseTree::Rename(UseRename { ident, rename, .. }) => {
                 let ident_str = format!("{}", ident);
                 if &ident_str == type_name || rename == type_name {
-                    Some(format!(
-                        "{}::{}",
-                        self.get_parent_path(&parent_path),
-                        rename
-                    ))
+                    Some(format!("{}::{}", self.get_parent_path(&parent_path), ident))
                 } else {
                     None
                 }
@@ -115,8 +112,10 @@ pub fn trans_utoipa_to_axum(old: String) -> String {
 #[cfg(feature = "utoipa_axum")]
 pub fn parse_utoipa_info(
     api_fn: &mut ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>,
-) {
+) -> Result<(), String> {
     if let Some(attrs) = api_fn.clone().attrs {
+        let mut utoipa_path: Option<String> = None;
+        let mut utoipa_tag: Option<String> = None;
         for attr in attrs.iter() {
             if attr.meta.path().segments.len() > 1 {
                 let segments = attr.meta.path().clone().segments;
@@ -135,12 +134,10 @@ pub fn parse_utoipa_info(
                                 let value = kvs.last().unwrap_or(&"").replace("\"", "");
                                 match key.trim() {
                                     "path" => {
-                                        api_fn.path = value.trim().to_string();
+                                        utoipa_path = Some(value.trim().to_string());
                                     }
                                     "tag" => {
-                                        if let Some(api_fn_doc) = &mut api_fn.api_fn_doc {
-                                            api_fn_doc.api_group = value.trim().to_string();
-                                        }
+                                        utoipa_tag = Some(value.trim().to_string());
                                     }
                                     &_ => {}
                                 }
@@ -150,5 +147,21 @@ pub fn parse_utoipa_info(
                 }
             }
         }
+        if let Some(path) = utoipa_path {
+            let macro_path = api_fn.path.trim();
+            if !macro_path.is_empty() && macro_path != path {
+                return Err(format!(
+                    "Path conflict on handler '{}': macro path '{}' != utoipa path '{}'",
+                    api_fn.api_fn_name, macro_path, path
+                ));
+            }
+            api_fn.path = path;
+        }
+        if let Some(tag) = utoipa_tag {
+            if let Some(api_fn_doc) = &mut api_fn.api_fn_doc {
+                api_fn_doc.api_group = tag;
+            }
+        }
     }
+    Ok(())
 }

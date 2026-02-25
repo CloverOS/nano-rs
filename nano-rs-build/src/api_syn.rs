@@ -6,6 +6,7 @@ pub mod api_key_word {
     syn::custom_keyword!(path);
     syn::custom_keyword!(layers);
     syn::custom_keyword!(group);
+    syn::custom_keyword!(tag);
     syn::custom_keyword!(api);
     syn::custom_keyword!(open);
     syn::custom_keyword!(path_group);
@@ -16,6 +17,7 @@ pub struct ApiMacroInfo {
     pub path_group_token: Option<PathGroupToken>,
     pub layers_token: Option<LayersToken>,
     pub group_token: Option<GroupToken>,
+    pub tag_token: Option<TagToken>,
     pub api_token: Option<ApiToken>,
     pub open_token: Option<OpenToken>,
 }
@@ -26,6 +28,7 @@ impl Parse for ApiMacroInfo {
         let mut path_group_token = None;
         let mut layers_token = None;
         let mut group_token = None;
+        let mut tag_token = None;
         let mut api_token = None;
         let mut open_token = None;
         while !input.is_empty() {
@@ -54,6 +57,11 @@ impl Parse for ApiMacroInfo {
                     return Err(input.error("Duplicate 'group' keyword"));
                 }
                 group_token = Some(input.parse::<GroupToken>()?);
+            } else if lookahead.peek(api_key_word::tag) {
+                if tag_token.is_some() {
+                    return Err(input.error("Duplicate 'tag' keyword"));
+                }
+                tag_token = Some(input.parse::<TagToken>()?);
             } else if lookahead.peek(api_key_word::api) {
                 if api_token.is_some() {
                     return Err(input.error("Duplicate 'api' keyword"));
@@ -74,11 +82,18 @@ impl Parse for ApiMacroInfo {
             }
         }
 
+        if group_token.is_some() && tag_token.is_some() {
+            return Err(input.error(
+                "Cannot use both 'group' and 'tag'. Use only 'tag' (recommended) or 'group'.",
+            ));
+        }
+
         Ok(ApiMacroInfo {
             path_token,
             path_group_token,
             layers_token,
             group_token,
+            tag_token,
             api_token,
             open_token,
         })
@@ -105,6 +120,22 @@ pub struct GroupToken {
     pub group_token: api_key_word::group,
     pub eq_token: Token![=],
     pub value_token: LitStr,
+}
+
+pub struct TagToken {
+    pub tag_token: api_key_word::tag,
+    pub eq_token: Token![=],
+    pub value_token: LitStr,
+}
+
+impl Parse for TagToken {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(TagToken {
+            tag_token: input.parse::<api_key_word::tag>()?,
+            eq_token: input.parse()?,
+            value_token: input.parse()?,
+        })
+    }
 }
 
 impl Parse for GroupToken {
@@ -185,5 +216,25 @@ impl Parse for PathGroupToken {
             eq_token: input.parse()?,
             value_token: input.parse()?,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ApiMacroInfo;
+
+    #[test]
+    fn parse_tag_keyword() {
+        let info: ApiMacroInfo = syn::parse_str(r#"path = "/pets", tag = "Store""#).unwrap();
+        assert!(info.path_token.is_some());
+        assert!(info.tag_token.is_some());
+        assert!(info.group_token.is_none());
+    }
+
+    #[test]
+    fn reject_tag_and_group_together() {
+        let result: syn::Result<ApiMacroInfo> =
+            syn::parse_str(r#"path = "/pets", tag = "Store", group = "Legacy""#);
+        assert!(result.is_err());
     }
 }

@@ -1,0 +1,9 @@
+[package]
+edition = "2024"
+name = "example_modular_model"
+version = "0.1.0"
+
+[dependencies]
+nano-rs = { path = "../../nano-rs" }
+serde = { workspace = true }
+utoipa = { version = "5.3.0", features = ["axum_extras"] }

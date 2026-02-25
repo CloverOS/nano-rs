@@ -32,7 +32,9 @@ impl GenApiInfo for AxumGenApiInfo {
         let mut api_fns = api_fns;
         #[cfg(feature = "utoipa_axum")]
         for (_name, api_fn) in api_fns.iter_mut() {
-            parse_utoipa_info(api_fn);
+            if let Err(err) = parse_utoipa_info(api_fn) {
+                panic!("{err}");
+            }
         }
         let mut entries: Vec<_> = api_fns.iter().collect();
         entries.sort_by(|(left, _), (right, _)| left.cmp(right));

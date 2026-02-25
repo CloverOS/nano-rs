@@ -1,6 +1,10 @@
 [workspace]
 members = [
     "example",
+    "example_modular",
+    "example_modular/api",
+    "example_modular/layers",
+    "example_modular/model",
     "nano-rs",
     "nano-rs-build",
     "nano-rs-core",

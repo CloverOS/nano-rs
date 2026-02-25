@@ -191,7 +191,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
-- 编写 utoipa 代码，参见 [示例](https://github.com/CloverOS/nano-rs/blob/main/example/src/api/pet/store.rs)，更多文档请参考 [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum)
+- OpenAPI 现在支持 **两种写法**，并且旧的 `#[utoipa::path(...)]` 写法完全兼容。
+- 旧写法（继续支持）：完整编写 utoipa 注解。参考 [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum)。
 
 ```rust
 /// Get pet by id
@@ -200,23 +201,32 @@ fn main() -> Result<(), Box<dyn Error>> {
     path = "/store/pet",
     tag = "Store",
     params(QueryPet),
-    responses(
-        (status = 200, body = Pet)
-    )
+    responses((status = 200, body = Pet))
 )]
 #[get()]
-pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(Pet {
-        id: query.id,
-        name: "Doggy".to_string(),
-        tag: None,
-        inline: None,
-        meta: Meta { name: "Doggy".to_string(), age: 1 },
-    })
-}
+pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> { ... }
 ```
 
-- 如果启用了 utoipa_axum 特性，则不需要重复编写path和group等代码（除非需要一个中间层），只需编写 utoipa 代码，即可获取 openapi 文档和 axum 路由。
+- 新简写（推荐）：直接写 `#[get]/#[post]`，nano-rs 会根据入参提取器和返回类型自动推导 OpenAPI。
+
+```rust
+/// Query pet by id
+#[get(path = "/store/pet", tag = "Store")]
+pub async fn get_query_pet_name(
+    Query(query): Query<QueryPet>,
+) -> Result<RestResp<Pet>, ServerError> { ... }
+```
+
+- 支持模块级默认分组（减少每个接口重复写 `tag`）：
+
+```rust
+/// @tag Store
+pub mod store;
+```
+
+- 使用模块级 `/// @tag ...` 后，该模块内的接口可以省略 `tag`。
+- 如果存在多层嵌套模块，只会使用顶层模块的 tag。
+- 如果同一个接口同时写了 `#[utoipa::path]` 和 `#[get]/#[post]`，则优先使用 utoipa 元数据。
 - 运行一次构建（只需要对项目的第一次编译）
 
 ```shell

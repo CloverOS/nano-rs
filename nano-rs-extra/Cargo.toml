@@ -42,16 +42,16 @@ syn = { version = "2.0.55", features = ["full"] }
 nano-rs-build = { path = "../nano-rs-build" }
 nano-rs-core = { path = "../nano-rs-core" }
 sea-orm = { version = "1.1.0", default-features = false, optional = true, features = [
-  "macros",
-  "runtime-tokio-rustls",
-  "with-bigdecimal",
-  "with-chrono",
-  "with-json",
-  "with-rust_decimal",
-  "with-time",
-  "with-uuid",
+    "macros",
+    "runtime-tokio-rustls",
+    "with-bigdecimal",
+    "with-chrono",
+    "with-json",
+    "with-rust_decimal",
+    "with-time",
+    "with-uuid",
 ] }
-utoipa = { version = "5.3.1", optional = true, features = ["axum_extras"] }
+utoipa = { version = "5.4.0", optional = true, features = ["axum_extras"] }
 
 [features]
 default = []

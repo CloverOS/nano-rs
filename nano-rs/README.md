@@ -195,8 +195,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
-- Write utoipa code,see [example](https://github.com/CloverOS/nano-rs/blob/main/example/src/api/pet/store.rs),more document please refer
-  to [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum)
+- OpenAPI supports **both** styles, and old `#[utoipa::path(...)]` code remains fully compatible.
+- Legacy (still supported): write full utoipa annotations. See [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum).
 
 ```rust
 /// Get pet by id
@@ -205,24 +205,32 @@ fn main() -> Result<(), Box<dyn Error>> {
     path = "/store/pet",
     tag = "Store",
     params(QueryPet),
-    responses(
-        (status = 200, body = Pet)
-    )
+    responses((status = 200, body = Pet))
 )]
 #[get()]
-pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(Pet {
-        id: query.id,
-        name: "Doggy".to_string(),
-        tag: None,
-        inline: None,
-        meta: Meta { name: "Doggy".to_string(), age: 1 },
-    })
-}
+pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> { ... }
 ```
 
-- If enable utoipa_axum features,you don't need write path or group code(unless you need a layer),just write utoipa code,then you can get openapi document and
-  axum route.
+- New simplified style (recommended): use `#[get]/#[post]` directly, and nano-rs infers OpenAPI from extractor/response signatures.
+
+```rust
+/// Query pet by id
+#[get(path = "/store/pet", tag = "Store")]
+pub async fn get_query_pet_name(
+    Query(query): Query<QueryPet>,
+) -> Result<RestResp<Pet>, ServerError> { ... }
+```
+
+- Module-level default tag (to avoid repeated `tag = ...` on every handler):
+
+```rust
+/// @tag Store
+pub mod store;
+```
+
+- With module-level `/// @tag ...`, handlers in that module can omit `tag`.
+- For nested modules, only the top-level module tag is used.
+- If both `#[utoipa::path]` and `#[get]/#[post]` are present, utoipa metadata takes priority.
 - Run build once (only needed for the project's first compilation)
 
 ```shell
