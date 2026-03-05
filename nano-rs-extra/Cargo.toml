@@ -58,3 +58,6 @@ default = []
 mysql = ["dep:sea-orm", "sea-orm/sqlx-mysql"]
 postgres = ["dep:sea-orm", "sea-orm/sqlx-postgres"]
 utoipa_axum = ["dep:utoipa"]
+
+[dev-dependencies]
+futures-util = "0.3"
