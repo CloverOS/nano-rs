@@ -79,6 +79,7 @@ pub(crate) async fn run_trace_core(
     next: Next,
     mode: TraceMode,
 ) -> Result<Response, (StatusCode, String)> {
+    let start = Instant::now();
     let request_id = resolve_request_id(req.headers());
     let method = req.method().to_string();
     let path = req.uri().to_string();
@@ -88,15 +89,6 @@ pub(crate) async fn run_trace_core(
         return Ok(early_return_with_request_id(next, req, &request_id).await);
     }
 
-    if is_websocket_upgrade_request(req.headers()) {
-        return Ok(early_return_with_request_id(next, req, &request_id).await);
-    }
-
-    if mode.log_response_body && is_sse_request(req.headers()) {
-        return Ok(early_return_with_request_id(next, req, &request_id).await);
-    }
-
-    let start = Instant::now();
     let mut req_info = mode.uses_body_log().then(|| RequestInfo {
         request_id: request_id.clone(),
         method: method.clone(),
@@ -119,6 +111,16 @@ pub(crate) async fn run_trace_core(
     } else {
         req
     };
+
+    if is_websocket_upgrade_request(req.headers()) {
+        log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
+        return Ok(early_return_with_request_id(next, req, &request_id).await);
+    }
+
+    if mode.log_response_body && is_sse_request(req.headers()) {
+        log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
+        return Ok(early_return_with_request_id(next, req, &request_id).await);
+    }
 
     let mut res = next.run(req).await;
 
