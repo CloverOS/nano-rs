@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use axum::body::{Body, Bytes};
-use axum::extract::Request;
+use axum::extract::{MatchedPath, Request};
 use axum::http::header::HeaderValue;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::middleware::Next;
@@ -83,9 +83,14 @@ pub(crate) async fn run_trace_core(
     let request_id = resolve_request_id(req.headers());
     let method = req.method().to_string();
     let path = req.uri().to_string();
+    let actual_path = req.uri().path();
+    let matched_path = req
+        .extensions()
+        .get::<MatchedPath>()
+        .map(MatchedPath::as_str);
     let ip = secure_ip.0.to_string();
 
-    if should_ignore_trace(log_config, method.as_str(), req.uri().path()) {
+    if should_ignore_trace(log_config, method.as_str(), actual_path, matched_path) {
         return Ok(early_return_with_request_id(next, req, &request_id).await);
     }
 
@@ -186,14 +191,19 @@ pub(crate) async fn early_return_with_request_id(
 pub(crate) fn should_ignore_trace(
     log_config: Option<&LogConfig>,
     method: &str,
-    path: &str,
+    actual_path: &str,
+    matched_path: Option<&str>,
 ) -> bool {
     log_config
         .and_then(|config| config.ignore_resource.as_ref())
         .map(|resources| {
-            resources
-                .iter()
-                .any(|resource| resource.method == method && resource.path == path)
+            resources.iter().any(|resource| {
+                resource.method == method
+                    && (resource.path == actual_path
+                        || matched_path
+                            .map(|path| resource.path == path)
+                            .unwrap_or(false))
+            })
         })
         .unwrap_or(false)
 }
@@ -468,6 +478,53 @@ mod tests {
         let response = tokio::time::timeout(Duration::from_millis(300), app.oneshot(request))
             .await
             .expect("ignore_resource should bypass buffering")
+            .expect("response");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(response.headers().contains_key(REQUEST_ID_HEADER));
+    }
+
+    #[tokio::test]
+    async fn with_state_ignore_resource_matches_axum_route_template() {
+        let log_config = LogConfig {
+            ignore_resource: Some(vec![Resource {
+                method: "POST".to_string(),
+                path: "/v1/create/{id}".to_string(),
+            }]),
+            logging: HashMap::new(),
+            ..Default::default()
+        };
+
+        let app = Router::new()
+            .route(
+                "/v1/create/{id}",
+                post(|| async {
+                    Response::builder()
+                        .status(StatusCode::OK)
+                        .header(header::CONTENT_TYPE, "text/plain")
+                        .body(Body::from_stream(
+                            stream::pending::<Result<Bytes, io::Error>>(),
+                        ))
+                        .expect("response")
+                }),
+            )
+            .route_layer(from_fn_with_state(
+                log_config,
+                crate::axum::middleware::trace_with_state::trace_http_with_request_body_and_response_body_with_state,
+            ))
+            .layer(ClientIpSource::XRealIp.into_extension());
+
+        let request = Request::builder()
+            .method("POST")
+            .uri("/v1/create/123")
+            .header("x-real-ip", "127.0.0.1")
+            .header(header::CONTENT_TYPE, "text/plain")
+            .body(Body::from("payload"))
+            .expect("request");
+
+        let response = tokio::time::timeout(Duration::from_millis(300), app.oneshot(request))
+            .await
+            .expect("ignore_resource should match the axum route template and bypass buffering")
             .expect("response");
 
         assert_eq!(response.status(), StatusCode::OK);
