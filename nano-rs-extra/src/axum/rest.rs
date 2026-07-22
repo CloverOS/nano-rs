@@ -1,8 +1,8 @@
-use std::fmt::Display;
-use axum::http::{header, HeaderValue, StatusCode};
+use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use bytes::{BufMut, BytesMut};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 use crate::axum::errors::ServerError;
 
@@ -13,7 +13,10 @@ pub struct RestResp<T> {
     pub data: Option<T>,
 }
 
-impl<T> IntoResponse for RestResp<T> where T: Serialize {
+impl<T> IntoResponse for RestResp<T>
+where
+    T: Serialize,
+{
     fn into_response(self) -> Response {
         // Use a small initial capacity of 128 bytes like serde_json::to_vec
         // https://docs.rs/serde_json/1.0.82/src/serde_json/ser.rs.html#2189
@@ -22,7 +25,7 @@ impl<T> IntoResponse for RestResp<T> where T: Serialize {
             Ok(()) => (
                 [(
                     header::CONTENT_TYPE,
-                    HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
+                    HeaderValue::from_static("application/json"),
                 )],
                 buf.into_inner().freeze(),
             )
@@ -31,7 +34,7 @@ impl<T> IntoResponse for RestResp<T> where T: Serialize {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 [(
                     header::CONTENT_TYPE,
-                    HeaderValue::from_static(mime::TEXT_PLAIN_UTF_8.as_ref()),
+                    HeaderValue::from_static("text/plain; charset=utf-8"),
                 )],
                 err.to_string(),
             )
@@ -39,7 +42,6 @@ impl<T> IntoResponse for RestResp<T> where T: Serialize {
         }
     }
 }
-
 
 ///通用的返回错误的方法
 /// Common return error method
@@ -55,8 +57,11 @@ impl<T> IntoResponse for RestResp<T> where T: Serialize {
 ///    biz_err(500, "error".to_string())
 /// }
 /// ```
-pub fn biz_err<T, S>(code: i32, msg: S) -> Result<RestResp<T>, ServerError> where S: ToString + Display + std::fmt::Debug {
-    tracing::error!("code: {} - {:#?}",code,msg);
+pub fn biz_err<T, S>(code: i32, msg: S) -> Result<RestResp<T>, ServerError>
+where
+    S: ToString + Display + std::fmt::Debug,
+{
+    tracing::error!("code: {} - {:#?}", code, msg);
     Ok(RestResp {
         code,
         msg: msg.to_string(),
@@ -92,7 +97,6 @@ pub fn biz_ok<T>(code: i32, data: T) -> Result<RestResp<T>, ServerError> {
     })
 }
 
-
 /// biz_ok macro
 ///
 /// # Example
@@ -113,15 +117,12 @@ macro_rules! biz_ok {
         nano_rs::axum::rest::biz_ok(200, $data)
     };
 
-    ($code:expr, $data:expr) => {{
-        nano_rs::axum::rest::biz_ok($code, $data)
-    }};
+    ($code:expr, $data:expr) => {{ nano_rs::axum::rest::biz_ok($code, $data) }};
 
     () => {
         nano_rs::axum::rest::biz_ok(200, ())
     };
 }
-
 
 /// biz_err macro
 ///
@@ -143,9 +144,7 @@ macro_rules! biz_err {
         nano_rs::axum::rest::biz_err(500, $msg)
     };
 
-    ($code:expr, $msg:expr) => {{
-        nano_rs::axum::rest::biz_err($code, $msg)
-    }};
+    ($code:expr, $msg:expr) => {{ nano_rs::axum::rest::biz_err($code, $msg) }};
 
     () => {
         nano_rs::axum::rest::biz_err(500, "error".to_string())

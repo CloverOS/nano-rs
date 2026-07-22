@@ -7,9 +7,9 @@ version = "0.1.0"
 axum = { workspace = true }
 axum-client-ip = { workspace = true }
 nano-rs = { path = "../nano-rs", features = ["utoipa_axum"] }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tower-http = { workspace = true }
-utoipa = { version = "5.3.0", features = ["axum_extras"] }
+utoipa = { workspace = true }
 utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
 
 example_modular_api = { path = "./api" }
@@ -18,7 +18,7 @@ example_modular_model = { path = "./model" }
 
 [build-dependencies]
 nano-rs = { path = "../nano-rs", features = ["utoipa_axum"] }
-utoipa = { version = "5.1.1", features = ["axum_extras"] }
+utoipa = { workspace = true }
 
 [profile.release]
 codegen-units = 1

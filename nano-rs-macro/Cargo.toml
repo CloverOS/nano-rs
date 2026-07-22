@@ -8,7 +8,7 @@ license = "MIT"
 name = "nano-rs-macro"
 readme = "README.md"
 repository = "https://github.com/CloverOS/nano-rs"
-rust-version = "1.88.0"
+rust-version = "1.94.0"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

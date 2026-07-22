@@ -8,7 +8,7 @@ license = "MIT"
 name = "nano-rs-extra"
 readme = "README.md"
 repository = "https://github.com/CloverOS/nano-rs"
-rust-version = "1.88.0"
+rust-version = "1.94.0"
 version = "0.1.4"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -18,30 +18,25 @@ anyhow = { workspace = true }
 axum = { workspace = true }
 axum-client-ip = { workspace = true }
 http-body-util = { workspace = true }
-hyper = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_yaml = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "net", "rt", "signal"] }
 tower = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
-tracing-opentelemetry-instrumentation-sdk = { workspace = true }
 
 bytes = { workspace = true }
-log = { workspace = true }
-mime = { workspace = true }
-regex = { workspace = true }
+log = { workspace = true, optional = true }
 uuid = { workspace = true }
 
-prettyplease = "0.2.16"
-proc-macro2 = "1.0.79"
-quote = { version = "1.0.35", features = ["default"] }
-syn = { version = "2.0.55", features = ["full"] }
+prettyplease = "0.3.0"
+proc-macro2 = "1.0.107"
+quote = { version = "1.0.47", features = ["default"] }
+syn = { version = "3.0.3", features = ["full"] }
 
 nano-rs-build = { path = "../nano-rs-build" }
 nano-rs-core = { path = "../nano-rs-core" }
-sea-orm = { version = "1.1.0", default-features = false, optional = true, features = [
+sea-orm = { version = "2.0.0", default-features = false, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
     "with-bigdecimal",
@@ -51,13 +46,14 @@ sea-orm = { version = "1.1.0", default-features = false, optional = true, featur
     "with-time",
     "with-uuid",
 ] }
-utoipa = { version = "5.4.0", optional = true, features = ["axum_extras"] }
+utoipa = { workspace = true, optional = true }
 
 [features]
 default = []
-mysql = ["dep:sea-orm", "sea-orm/sqlx-mysql"]
-postgres = ["dep:sea-orm", "sea-orm/sqlx-postgres"]
+mysql = ["dep:log", "dep:sea-orm", "sea-orm/sqlx-mysql"]
+postgres = ["dep:log", "dep:sea-orm", "sea-orm/sqlx-postgres"]
 utoipa_axum = ["dep:utoipa"]
 
 [dev-dependencies]
-futures-util = "0.3"
+futures-util = { version = "0.3.33", default-features = false }
+tokio = { workspace = true, features = ["rt-multi-thread", "time"] }

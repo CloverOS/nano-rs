@@ -51,7 +51,7 @@ providing a fast and efficient development experience. By reducing the burden of
 
 ### Environment Requirements
 
-MSRV >= 1.88
+MSRV >= 1.94
 
 ### Installation
 
