@@ -1,4 +1,5 @@
 use tracing_appender::non_blocking::WorkerGuard;
+use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::Registry;
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 use tracing_subscriber::layer::SubscriberExt;
@@ -82,11 +83,16 @@ fn build_tracing_layers(
             .unwrap_or(crate::config::logger::Level::default())
             .get_log_file_config(level)
             .unwrap_or(LogFileConfig::default());
-        if log_file_config.clone().file.unwrap_or(true) {
-            let file_appender = tracing_appender::rolling::daily(
-                log_file_config.clone().dir.unwrap_or("logs".to_string()),
-                log_file_config.get_default_prefix(level),
-            );
+        if log_file_config.file.unwrap_or(true) {
+            let mut file_appender_builder = RollingFileAppender::builder()
+                .rotation(Rotation::DAILY)
+                .filename_prefix(log_file_config.get_default_prefix(level));
+            if let Some(max_files) = log_file_config.max_files {
+                file_appender_builder = file_appender_builder.max_log_files(max_files);
+            }
+            let file_appender = file_appender_builder
+                .build(log_file_config.dir.as_deref().unwrap_or("logs"))
+                .expect("initializing rolling file appender failed");
             let tracing_level = log_file_config.get_tracing_level(level);
             let (appender, guard) = tracing_appender::non_blocking(file_appender);
             let layer = tracing_subscriber::fmt::layer()
@@ -134,26 +140,31 @@ mod tests {
                         dir: None,
                         prefix: None,
                         file: Some(false),
+                        max_files: None,
                     }),
                     debug: Some(LogFileConfig {
                         dir: None,
                         prefix: None,
                         file: Some(false),
+                        max_files: None,
                     }),
                     info: Some(LogFileConfig {
                         dir: None,
                         prefix: None,
                         file: Some(false),
+                        max_files: None,
                     }),
                     warn: Some(LogFileConfig {
                         dir: None,
                         prefix: None,
                         file: Some(false),
+                        max_files: None,
                     }),
                     error: Some(LogFileConfig {
                         dir: None,
                         prefix: None,
                         file: Some(false),
+                        max_files: None,
                     }),
                 }),
                 ..Default::default()
@@ -181,6 +192,87 @@ mod tests {
         let rest_config = test_rest_config();
         let (_, guards) = build_tracing_layers(&rest_config, vec![]);
         assert_eq!(guards.len(), 0);
+    }
+
+    struct TempLogDir(std::path::PathBuf);
+
+    impl TempLogDir {
+        fn new(test_name: &str) -> Self {
+            let unique = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "nano-rs-{test_name}-{}-{unique}",
+                std::process::id()
+            ));
+            std::fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+
+        fn path(&self) -> &std::path::Path {
+            &self.0
+        }
+    }
+
+    impl Drop for TempLogDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn build_info_file_layer(dir: &std::path::Path, max_files: usize) {
+        let mut rest_config = test_rest_config();
+        let info = rest_config
+            .log
+            .level
+            .as_mut()
+            .and_then(|level| level.info.as_mut())
+            .unwrap();
+        info.dir = Some(dir.to_string_lossy().into_owned());
+        info.file = Some(true);
+        info.max_files = Some(max_files);
+
+        let (layers, guards) = build_tracing_layers(&rest_config, vec![]);
+        drop(layers);
+        drop(guards);
+    }
+
+    fn create_old_info_logs(dir: &std::path::Path) {
+        for date in ["2000-01-01", "2000-01-02", "2000-01-03"] {
+            std::fs::write(dir.join(format!("info.log.{date}")), date).unwrap();
+        }
+    }
+
+    fn count_info_logs(dir: &std::path::Path) -> usize {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .filter(|name| name.to_string_lossy().starts_with("info.log."))
+            .count()
+    }
+
+    #[test]
+    fn max_files_prunes_only_matching_level_files() {
+        let dir = TempLogDir::new("max-files");
+        create_old_info_logs(dir.path());
+        let error_log = dir.path().join("error.log.2000-01-01");
+        std::fs::write(&error_log, "error").unwrap();
+
+        build_info_file_layer(dir.path(), 2);
+
+        assert_eq!(count_info_logs(dir.path()), 2);
+        assert!(error_log.exists());
+    }
+
+    #[test]
+    fn zero_max_files_keeps_existing_logs() {
+        let dir = TempLogDir::new("zero-max-files");
+        create_old_info_logs(dir.path());
+
+        build_info_file_layer(dir.path(), 0);
+
+        assert_eq!(count_info_logs(dir.path()), 4);
     }
 
     #[test]

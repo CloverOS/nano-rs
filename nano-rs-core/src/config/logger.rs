@@ -49,6 +49,9 @@ pub struct LogFileConfig {
     pub prefix: Option<String>,
     /// enable file output
     pub file: Option<bool>,
+    /// maximum number of rolling log files to retain for this level;
+    /// `None` or `0` disables pruning
+    pub max_files: Option<usize>,
 }
 
 impl LogFileConfig {
@@ -136,3 +139,22 @@ impl Level {
 }
 
 pub const LOG_LEVEL: [&str; 5] = ["trace", "debug", "info", "warn", "error"];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn log_file_config_deserializes_max_files() {
+        let config: LogFileConfig = serde_yaml::from_str("max_files: 7").unwrap();
+
+        assert_eq!(config.max_files, Some(7));
+    }
+
+    #[test]
+    fn log_file_config_defaults_max_files_to_none() {
+        let config: LogFileConfig = serde_yaml::from_str("file: true").unwrap();
+
+        assert_eq!(config.max_files, None);
+    }
+}
