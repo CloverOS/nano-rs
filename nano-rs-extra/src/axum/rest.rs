@@ -101,13 +101,15 @@ pub fn biz_ok<T>(code: i32, data: T) -> Result<RestResp<T>, ServerError> {
 ///
 /// # Example
 /// ```rust
+/// extern crate nano_rs_extra as nano_rs;
+///
 /// fn main() {
 ///     use nano_rs_extra::axum::errors::ServerError;
 ///     use nano_rs_extra::axum::rest::RestResp;
 ///     use nano_rs_extra::biz_ok;
 ///     let result: Result<RestResp<()>, ServerError> = biz_ok!();
-///     let result_with_msg: Result<RestResp<()>, ServerError> = biz_ok!("Custom message");
-///     let custom_result: Result<RestResp<()>, ServerError> = biz_ok!(203, "Yes");
+///     let result_with_data: Result<RestResp<&str>, ServerError> = biz_ok!("Custom data");
+///     let custom_result: Result<RestResp<&str>, ServerError> = biz_ok!(203, "Yes");
 /// }
 /// ```
 ///
@@ -128,6 +130,8 @@ macro_rules! biz_ok {
 ///
 /// # Example
 /// ```rust
+/// extern crate nano_rs_extra as nano_rs;
+///
 /// fn main() {
 ///     use nano_rs_extra::axum::errors::ServerError;
 ///     use nano_rs_extra::axum::rest::RestResp;

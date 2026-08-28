@@ -1,15 +1,15 @@
+use crate::config::rest::RestConfig;
 use clap::Parser;
 use serde::Deserialize;
-use crate::config::rest::RestConfig;
 
-pub mod read;
-pub mod rest;
 pub mod db;
-pub mod logger;
 pub mod etcd;
-pub mod rpc;
+pub mod logger;
 pub mod prometheus;
+pub mod read;
 pub mod redis;
+pub mod rest;
+pub mod rpc;
 
 /// - 从路径加载配置文件
 /// - Load configuration file from config_path
@@ -28,7 +28,7 @@ pub fn init_config<T: Clone + Default + for<'a> Deserialize<'a>>(config_path: &s
 /// - Initialize Rest configuration with command line interface
 ///  # Examples
 ///
-/// ```
+/// ```no_run
 /// let rest_config = nano_rs_core::config::init_rest_config_with_cli();
 /// ```
 ///
@@ -43,7 +43,7 @@ pub fn init_rest_config_with_cli() -> rest::RestConfig {
 /// - Initialize configuration with command line interface
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use nano_rs_core::config::init_config_with_cli;
 /// use nano_rs_core::config::rest::RestConfig;
 ///
@@ -55,7 +55,6 @@ pub fn init_config_with_cli<T: Clone + Default + for<'a> Deserialize<'a>>() -> T
     let config = init_config(cli.config.as_str());
     config
 }
-
 
 /// - 命令行接口结构体
 /// - Command line interface structure

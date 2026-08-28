@@ -165,3 +165,71 @@ pub fn parse_utoipa_info(
     }
     Ok(())
 }
+
+#[cfg(all(test, feature = "utoipa_axum"))]
+mod tests {
+    use super::parse_utoipa_info;
+    use nano_rs_build::api_fn::ApiFn;
+    use nano_rs_build::api_parse::parse_api_info;
+    use syn::punctuated::Punctuated;
+    use syn::token::Comma;
+    use syn::{Attribute, FnArg, ItemUse};
+
+    fn api_fn(
+        macro_path: &str,
+    ) -> ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>> {
+        let route_args = if macro_path.is_empty() {
+            String::new()
+        } else {
+            format!(r#"path = "{macro_path}""#)
+        };
+        let item_fn: syn::ItemFn = syn::parse_str(
+            format!(
+                r#"
+                #[utoipa::path(get, path = "/pets/{{id}}", tag = "Store")]
+                #[get({route_args})]
+                async fn get_pet() {{}}
+                "#
+            )
+            .as_str(),
+        )
+        .unwrap();
+        let route_attr = item_fn
+            .attrs
+            .iter()
+            .find(|attr| attr.path().is_ident("get"))
+            .unwrap();
+
+        parse_api_info(&item_fn, route_attr, "get", None).unwrap()
+    }
+
+    #[test]
+    fn legacy_utoipa_path_fills_missing_route_macro_path() {
+        let mut api_fn = api_fn("");
+
+        parse_utoipa_info(&mut api_fn).unwrap();
+
+        assert_eq!(api_fn.path, "/pets/{id}");
+    }
+
+    #[test]
+    fn matching_route_macro_and_utoipa_paths_are_accepted() {
+        let mut api_fn = api_fn("/pets/{id}");
+
+        parse_utoipa_info(&mut api_fn).unwrap();
+
+        assert_eq!(api_fn.path, "/pets/{id}");
+    }
+
+    #[test]
+    fn conflicting_route_macro_and_utoipa_paths_are_rejected() {
+        let mut api_fn = api_fn("/pets/:id");
+
+        let error = parse_utoipa_info(&mut api_fn).unwrap_err();
+
+        assert_eq!(
+            error,
+            "Path conflict on handler 'get_pet': macro path '/pets/:id' != utoipa path '/pets/{id}'"
+        );
+    }
+}

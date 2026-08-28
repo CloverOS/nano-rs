@@ -33,7 +33,7 @@ impl AppStarter {
     /// easy run axum server with rest config
     ///
     /// # Example
-    /// ```rust
+    /// ```no_run
     /// use axum::Router;
     /// use nano_rs_core::config::rest::RestConfig;
     /// use axum_client_ip::ClientIpSource;
@@ -82,7 +82,7 @@ impl AppStarter {
 
     /// run service with dev mode(all cors allowed)
     /// # Example
-    /// ```rust
+    /// ```no_run
     /// use axum::Router;
     /// use nano_rs_core::config::rest::RestConfig;
     /// use axum_client_ip::ClientIpSource;
