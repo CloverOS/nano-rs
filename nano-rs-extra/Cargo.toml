@@ -36,7 +36,7 @@ syn = { version = "3.0.3", features = ["full"] }
 
 nano-rs-build = { path = "../nano-rs-build" }
 nano-rs-core = { path = "../nano-rs-core" }
-sea-orm = { version = "2.0.0", default-features = false, optional = true, features = [
+sea-orm = { version = "2", default-features = false, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
     "with-bigdecimal",
