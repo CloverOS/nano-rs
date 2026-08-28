@@ -1,0 +1,9 @@
+[package]
+edition = "2024"
+name = "example_modular_layers"
+version = "0.1.0"
+
+[dependencies]
+axum = { workspace = true }
+example_modular_model = { path = "../model" }
+nano-rs = { path = "../../nano-rs" }

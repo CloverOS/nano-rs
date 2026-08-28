@@ -34,10 +34,12 @@ providing a fast and efficient development experience. By reducing the burden of
     <ol>
         <li><a href="#router-auto-gen">RouterAutoGen</a></li>
         <li><a href="#openapi-generation">OpenApi Generation(for utoipa)</a></li>
-        <li><a href="#apiinfo-generation">ApiInfo Generation</a></li> 
+        <li><a href="#apiinfo-generation">ApiInfo Generation</a></li>
+        <li><a href="#logging-and-request-tracing">Logging and Request Tracing</a></li>
+        <li><a href="#modular-example">Modular Example</a></li>
     </ol>
     </li>
-    <li><a href="others">Others</a>
+    <li><a href="#others">Others</a>
       <ol>
          <li><a href="#seaorm-postgresql-doc-generation">SeaOrm Postgresql Doc Generation</a></li>
       </ol>
@@ -51,12 +53,18 @@ providing a fast and efficient development experience. By reducing the burden of
 
 ### Environment Requirements
 
-MSRV >= 1.85
+MSRV >= 1.94
 
 ### Installation
 
 ```shell
-  cargo add nano-rs
+cargo add nano-rs
+```
+
+This installs the latest release published on crates.io. To use features available on the current development line before the next release, depend on `main`:
+
+```shell
+cargo add nano-rs --git https://github.com/CloverOS/nano-rs --branch main
 ```
 
 ## Quick Start
@@ -67,16 +75,16 @@ MSRV >= 1.85
 
 ```toml
 [build-dependencies]
-nano-rs = "0.1.3"
-nano-rs-build = "0.1.2"
+nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
+nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
 ```
 
 - Add gen component build.rs
 
 ```rust
 use std::error::Error;
-use nano_rs_build::core::NanoBuilder;
 use nano_rs::axum::generator::gen_route::AxumGenRoute;
+use nano_rs::core::NanoBuilder;
 
 fn main() -> Result<(), Box<dyn Error>> {
     NanoBuilder::new(None).gen_api_route(AxumGenRoute::new());
@@ -85,7 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 ```
 
 - Add the configuration file to your desired directory (in the example, it is placed
-  in [etc/config.yaml](https://github.com/CloverOS/nano-rs/blob/master/example/etc/config.yaml))
+  in [etc/config.yaml](https://github.com/CloverOS/nano-rs/blob/main/example/etc/config.yaml))
 
 ```yaml
 port: 8888
@@ -94,16 +102,20 @@ host: 127.0.0.1
 ```
 
 - Write your API code anywhere in project with marco (for example, under api/pet), for macros, please refer
-  to [example](https://github.com/CloverOS/nano-rs/blob/master/example/src/api)
+  to [example](https://github.com/CloverOS/nano-rs/blob/main/example/src/api)
 
 ```rust
+use nano_rs::axum::errors::ServerError;
+use nano_rs::axum::rest::RestResp;
+use nano_rs::{biz_ok, get};
+
 #[get(path = "/store/name", layers = ["crate::layers::auth::auth_token1"])]
 pub async fn get_store_name() -> Result<RestResp<String>, ServerError> {
-    biz_ok("Doggy Store".to_string())
+    biz_ok!("Doggy Store".to_string())
 }
 ```
 
-- Run build once (only needed for the project's first compilation)
+- Build the project. Cargo reruns `build.rs` when relevant inputs change.
 
 ```shell
 cargo build
@@ -115,29 +127,23 @@ cargo build
 
 ```rust
 use axum::Router;
-use nano_rs_core::config::rest::RestConfig;
-use axum_client_ip::SecureClientIpSource;
-use nano_rs_extra::axum::start::AppStarter;
+use axum_client_ip::ClientIpSource;
+use nano_rs::axum::start::AppStarter;
+use nano_rs::config::init_config_with_cli;
+use nano_rs::config::rest::RestConfig;
 
 #[tokio::main]
 async fn main() {
-  let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
-  let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
-  let service_context = ServiceContext {
-    rest_config: rest_config.clone(),
-  };
-  let app = Router::new();
-  AppStarter::new(app, rest_config)
-      .add_log_layer()
-      ///if use nginx proxy,you can use SecureClientIpSource::XRealIp
-      .add_secure_client_ip_source_layer(SecureClientIpSource::XRealIp)
-      .run()
-      .await;
-}
+    let rest_config = init_config_with_cli::<RestConfig>();
+    let _guards = nano_rs::tracing::init_tracing(&rest_config);
+    let log_config = rest_config.log.clone();
 
-#[derive(Clone)]
-pub struct ServiceContext {
-  pub rest_config: RestConfig,
+    AppStarter::new(Router::new(), rest_config)
+        .add_log_layer_with_config(Some(log_config))
+        // When a trusted reverse proxy sets X-Real-IP, use this source.
+        .add_secure_client_ip_source_layer(ClientIpSource::XRealIp)
+        .run()
+        .await;
 }
 ```
 
@@ -156,17 +162,19 @@ cargo run -- --config etc/config.yaml
 
 ```toml
 [build-dependencies]
-nano-rs = { version = "0.1.3", features = ["utoipa_axum"] }
-nano-rs-build = "0.1.2"
-utoipa = { version = "5.1.1", features = ["axum_extras"] }
+nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main", features = ["utoipa_axum"] }
+nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
+utoipa = { version = "5.5.0", features = ["axum_extras"] }
 ```
 
 - Add gen component to build.rs
 
 ```rust
 use std::error::Error;
-use nano_rs_build::core::NanoBuilder;
+use nano_rs::axum::generator::gen_doc::AxumGenDoc;
 use nano_rs::axum::generator::gen_route::AxumGenRoute;
+use nano_rs::core::NanoBuilder;
+use utoipa::openapi::{ContactBuilder, InfoBuilder, ServerBuilder};
 
 fn main() -> Result<(), Box<dyn Error>> {
     NanoBuilder::new(None)
@@ -195,8 +203,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
-- Write utoipa code,see [example](https://github.com/CloverOS/nano-rs/blob/main/example/src/api/pet/store.rs),more document please refer
-  to [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum)
+- OpenAPI supports **both** styles, and old `#[utoipa::path(...)]` code remains fully compatible.
+- Legacy (still supported): write full utoipa annotations. See [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum).
 
 ```rust
 /// Get pet by id
@@ -205,25 +213,36 @@ fn main() -> Result<(), Box<dyn Error>> {
     path = "/store/pet",
     tag = "Store",
     params(QueryPet),
-    responses(
-        (status = 200, body = Pet)
-    )
+    responses((status = 200, body = Pet))
 )]
 #[get()]
-pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(Pet {
-        id: query.id,
-        name: "Doggy".to_string(),
-        tag: None,
-        inline: None,
-        meta: Meta { name: "Doggy".to_string(), age: 1 },
-    })
-}
+pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> { ... }
 ```
 
-- If enable utoipa_axum features,you don't need write path or group code(unless you need a layer),just write utoipa code,then you can get openapi document and
-  axum route.
-- Run build once (only needed for the project's first compilation)
+- New simplified style (recommended): use `#[get]/#[post]` directly, and nano-rs infers OpenAPI from extractor/response signatures.
+
+```rust
+/// Query pet by id
+#[get(path = "/store/pet", tag = "Store")]
+pub async fn get_query_pet_name(
+    Query(query): Query<QueryPet>,
+) -> Result<RestResp<Pet>, ServerError> { ... }
+```
+
+- Module-level default tag (to avoid repeated `tag = ...` on every handler):
+
+```rust
+/// @tag Store
+pub mod store;
+```
+
+- With module-level `/// @tag ...`, handlers in that module can omit `tag`.
+- For nested modules, handlers inherit the nearest ancestor module tag unless the child module declares its own `/// @tag ...`.
+- A route macro must provide `path = "..."` unless the handler also has `#[utoipa::path(...)]`; in the legacy form, the utoipa path is used for route
+  generation.
+- If both annotations provide a path, the paths must be identical. Other utoipa metadata is retained, but a path mismatch fails the build with an explicit
+  error.
+- Build the project. Cargo reruns `build.rs` when relevant inputs change.
 
 ```shell
 cargo build
@@ -245,13 +264,19 @@ cargo run -- --config etc/config.yaml
 
 ```toml
 [build-dependencies]
-nano-rs = "0.1.3"
-nano-rs-build = "0.1.2"
+nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
+nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
 ```
 
 - Add build.rs
 
 ```rust
+use std::error::Error;
+
+use nano_rs::axum::generator::gen_api_info::AxumGenApiInfo;
+use nano_rs::axum::generator::gen_route::AxumGenRoute;
+use nano_rs::core::NanoBuilder;
+
 fn main() -> Result<(), Box<dyn Error>> {
     NanoBuilder::new(None)
         .gen_api_route(AxumGenRoute::new())
@@ -260,18 +285,60 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
-- This will gen `api_info.rs` in your `src/` for collect your all api info,and you can use `get_api_info()` to get all api info.
+- This generates `api_info.rs` in `src/`; use `get_api_info()` to access the collected endpoint metadata.
+- `routes.rs`, `doc.rs`, and `api_info.rs` are generated files. Do not edit them by hand because a later build can overwrite them.
+
+### Logging and Request Tracing
+
+Logging is configured per level under `log.level`:
+
+```yaml
+log:
+  enable_request_body_log: true
+  enable_response_body_log: false
+  ignore_resource:
+    - method: GET
+      path: /pets/{id}
+  level:
+    info:
+      file: true
+      dir: logs
+      max_files: 7
+    error:
+      file: true
+      dir: logs
+      max_files: 30
+```
+
+- Files roll daily. `max_files` is applied independently to each log level and includes the current file; omit it or set it to `0` to disable pruning.
+- The request tracing middleware reuses a non-empty incoming `x-request-id`, otherwise generates a UUID, and writes the selected ID to the response header and
+  request log.
+- `ignore_resource` matches the configured HTTP method and either the concrete request path or the Axum route template, such as `/pets/{id}`.
+- When response-body logging is enabled, SSE streams and WebSocket upgrades bypass body buffering so streaming and upgrades are not blocked.
+- Use `nano_rs::tracing::init_tracing_with_layers` with `nano_rs::tracing::DynTracingLayer` values to attach custom tracing subscriber layers while retaining
+  the built-in logging configuration.
+
+### Modular Example
+
+See [`example_modular`](https://github.com/CloverOS/nano-rs/tree/main/example_modular) for route and OpenAPI generation across separate API, model, and layer
+crates.
+
+## Others
 
 ### SeaOrm Postgresql Doc Generation
 - Cause seaorm does not support postgresql doc generation, so we provide a way to generate it.
 - Add build dependencies
 ```toml
 [build-dependencies]
-nano-rs-extra = { version = "0.1.4" }
-tokio = { version = "1.34.0", features = ["full"] }
+nano-rs-extra = { git = "https://github.com/CloverOS/nano-rs", branch = "main", features = ["postgres"] }
+tokio = { version = "1.53.1", features = ["full"] }
 ```
 - Add build.rs
 ```rust
+use std::error::Error;
+
+use nano_rs_extra::sea_orm::postgres::gen_comments::GenComments;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let database_url = "postgres://test:test@localhost/test".to_string();
@@ -281,7 +348,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 ```
-- Run build once (only needed for the project's first compilation)
+
+- Build the project whenever the entity definitions or database comments change.
 - It will inject doc into your entity field from your postgresql database when you already make doc in field.
 - Before build
 ```rust
@@ -347,7 +415,7 @@ impl ActiveModelBehavior for ActiveModel {}
 - [x] Preset common web service configuration (managed via yaml)
 - [x] Auto-generate OpenApi (gen [utoipa](https://github.com/juhaku/utoipa) struct)
 
-For a full list of proposed features (and known issues), please see the [open issues](https://github.com/CloverOSe/nano-rs/issues).
+For a full list of proposed features (and known issues), please see the [open issues](https://github.com/CloverOS/nano-rs/issues).
 
 ## License
 

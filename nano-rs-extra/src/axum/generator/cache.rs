@@ -1,14 +1,19 @@
+#[cfg(feature = "utoipa_axum")]
 use crate::axum::generator::write_if_changed;
+#[cfg(feature = "utoipa_axum")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "utoipa_axum")]
 use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+#[cfg(feature = "utoipa_axum")]
 use std::time::UNIX_EPOCH;
 
 const CACHE_DIR_NAME: &str = ".nano_cache";
 const API_INFO_HASH_FILE: &str = "api_info.hash";
 const ROUTE_HASH_FILE: &str = "route.hash";
+#[cfg(feature = "utoipa_axum")]
 const DOC_SCHEMA_FILE: &str = "doc_schema.json";
 
 fn cache_dir_path(base: &Path) -> PathBuf {
@@ -35,12 +40,14 @@ pub fn write_route_hash(base: &Path, hash: &str) -> io::Result<()> {
     fs::write(dir.join(ROUTE_HASH_FILE), hash)
 }
 
+#[cfg(feature = "utoipa_axum")]
 #[derive(Debug, Clone)]
 pub struct FileFingerprint {
     pub modified: u128,
     pub len: u64,
 }
 
+#[cfg(feature = "utoipa_axum")]
 impl FileFingerprint {
     pub fn from_path(path: &Path) -> io::Result<Self> {
         let metadata = fs::metadata(path)?;
@@ -57,11 +64,13 @@ impl FileFingerprint {
     }
 }
 
+#[cfg(feature = "utoipa_axum")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DocSchemaCache {
     files: BTreeMap<String, FileCacheEntry>,
 }
 
+#[cfg(feature = "utoipa_axum")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct FileCacheEntry {
     pub(crate) modified: u128,
@@ -70,6 +79,7 @@ pub(crate) struct FileCacheEntry {
     pub(crate) enums: Vec<String>,
 }
 
+#[cfg(feature = "utoipa_axum")]
 impl DocSchemaCache {
     pub fn load(base: &Path) -> Self {
         let path = cache_dir_path(base).join(DOC_SCHEMA_FILE);

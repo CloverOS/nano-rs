@@ -1,0 +1,25 @@
+port: 8899
+name: example_modular
+host: 127.0.0.1
+base_path: /
+log:
+  enable_request_body_log: true
+  ignore_resource:
+    - method: GET
+      path: /samoyed/name
+  level:
+    debug:
+      file: false
+    trace:
+      file: false
+  logging:
+    example:
+      level: error
+    sqlx:
+      level: warn
+    tower_http:
+      level: error
+    hyper:
+      level: info
+    nano_rs_extra:
+      level: info

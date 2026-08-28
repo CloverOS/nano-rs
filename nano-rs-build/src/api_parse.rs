@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
-use std::ops::Add;
 use std::path::{Path, PathBuf};
 
+use quote::ToTokens;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{Attribute, Expr, FnArg, Item, ItemFn, ItemMod, ItemUse, Lit, Meta};
@@ -143,6 +143,74 @@ pub fn gen_fn_full_crate_path(
     }
 }
 
+pub fn gen_file_crate_module_path(crate_ctx: &CrateContext, path_buf: &Path) -> String {
+    let relative = path_buf.strip_prefix(&crate_ctx.root).unwrap_or(path_buf);
+    let mut module_parts: Vec<String> = Vec::new();
+    let mut inside_src = false;
+
+    for component in relative.components() {
+        use std::path::Component;
+        match component {
+            Component::ParentDir | Component::CurDir | Component::RootDir => {}
+            Component::Prefix(_) => {}
+            Component::Normal(os_str) => {
+                let part = os_str.to_string_lossy();
+                if !inside_src {
+                    if part == "src" {
+                        inside_src = true;
+                    }
+                    continue;
+                }
+                if part == "mod.rs" || part == "lib.rs" || part == "main.rs" {
+                    continue;
+                }
+                if part.ends_with(".rs") {
+                    let stem = part.trim_end_matches(".rs");
+                    if !stem.is_empty() {
+                        module_parts.push(stem.to_string());
+                    }
+                } else {
+                    module_parts.push(part.to_string());
+                }
+            }
+        }
+    }
+
+    if module_parts.is_empty() {
+        crate_ctx.code_prefix.clone()
+    } else {
+        format!("{}::{}", crate_ctx.code_prefix, module_parts.join("::"))
+    }
+}
+
+pub fn parse_mod_tag_attr(attrs: &[Attribute]) -> Option<String> {
+    for attr in attrs {
+        if attr.path().is_ident("doc") {
+            if let Meta::NameValue(name_value) = &attr.meta {
+                if let Expr::Lit(lit) = &name_value.value {
+                    if let Lit::Str(value) = &lit.lit {
+                        let doc_line = value.value();
+                        let line = doc_line.trim();
+                        if let Some(rest) = line.strip_prefix("@tag") {
+                            let mut chars = rest.chars();
+                            match chars.next() {
+                                Some(ch) if ch.is_whitespace() || ch == ':' => {
+                                    let rest = rest.trim_start().trim_start_matches(':').trim_start();
+                                    if !rest.is_empty() {
+                                        return Some(rest.to_string());
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 pub fn extract_doc_comments(attrs: &Vec<Attribute>) -> Vec<String> {
     attrs
         .iter()
@@ -151,7 +219,7 @@ pub fn extract_doc_comments(attrs: &Vec<Attribute>) -> Vec<String> {
                 if let Meta::NameValue(name_value) = &attr.meta {
                     if let Expr::Lit(lit) = &name_value.value {
                         if let Lit::Str(str) = &lit.lit {
-                            return Some(str.value());
+                            return Some(str.value().trim().to_string());
                         }
                     }
                 }
@@ -172,47 +240,54 @@ pub fn parse_fn_item_in_mod(
     mod_name: &str,
     path_buf: PathBuf,
     crate_ctx: &CrateContext,
-) {
+    default_tag: Option<&str>,
+) -> Result<(), Box<dyn Error>> {
     //先获取全部的use,防止有些文件没有进行rustfmt
     let mut item_uses: Vec<ItemUse> = vec![];
-    for content in item_mod.content.iter() {
-        for item in content.clone().1.iter() {
-            match item {
-                Item::Use(item_use) => {
-                    item_uses.push(item_use.clone());
-                }
-                _ => {}
-            }
+    let Some((_, items)) = &item_mod.content else {
+        return Ok(());
+    };
+    for item in items.iter() {
+        if let Item::Use(item_use) = item {
+            item_uses.push(item_use.clone());
         }
     }
-    for content in item_mod.content.iter() {
-        for fn_item in content.clone().1.iter() {
-            match fn_item {
-                Item::Fn(fn_item) => {
-                    if let Some(parsed) =
-                        parse_fn_item(fn_item, path_buf.clone(), Some(mod_name), crate_ctx).unwrap()
-                    {
-                        let (fn_name, mut api_fn) = parsed;
-                        eprintln!("add fn in mod :{:?}", fn_name);
-                        api_fn.use_crate = Some(item_uses.clone());
-                        api_fn.crate_prefix = crate_ctx.code_prefix.clone();
-                        api_fn.crate_name = Some(crate_ctx.package_name.clone());
-                        fns.insert(fn_name, api_fn);
-                    }
+
+    for fn_item in items.iter() {
+        match fn_item {
+            Item::Fn(fn_item) => {
+                if let Some(parsed) = parse_fn_item(
+                    fn_item,
+                    path_buf.clone(),
+                    Some(mod_name),
+                    crate_ctx,
+                    default_tag,
+                )? {
+                    let (fn_name, mut api_fn) = parsed;
+                    eprintln!("add fn in mod :{:?}", fn_name);
+                    api_fn.use_crate = Some(item_uses.clone());
+                    api_fn.crate_prefix = crate_ctx.code_prefix.clone();
+                    api_fn.crate_name = Some(crate_ctx.package_name.clone());
+                    fns.insert(fn_name, api_fn);
                 }
-                Item::Mod(mod_item) => {
-                    parse_fn_item_in_mod(
-                        fns,
-                        mod_item,
-                        format!("{}::{}", mod_name, mod_item.ident.to_string()).as_str(),
-                        path_buf.clone(),
-                        crate_ctx,
-                    );
-                }
-                _ => {}
             }
+            Item::Mod(mod_item) => {
+                let nested_mod_name = format!("{}::{}", mod_name, mod_item.ident);
+                let nested_default_tag =
+                    parse_mod_tag_attr(&mod_item.attrs).or_else(|| default_tag.map(str::to_string));
+                parse_fn_item_in_mod(
+                    fns,
+                    mod_item,
+                    nested_mod_name.as_str(),
+                    path_buf.clone(),
+                    crate_ctx,
+                    nested_default_tag.as_deref(),
+                )?;
+            }
+            _ => {}
         }
     }
+    Ok(())
 }
 
 pub fn parse_fn_item(
@@ -220,6 +295,7 @@ pub fn parse_fn_item(
     path_buf: PathBuf,
     mod_name: Option<&str>,
     crate_ctx: &CrateContext,
+    default_tag: Option<&str>,
 ) -> Result<
     Option<(
         String,
@@ -238,7 +314,7 @@ pub fn parse_fn_item(
             if let Some(ident) = path.get_ident() {
                 let method = ident.to_string();
                 if METHODS.contains(&method.as_str()) {
-                    let api_fn = parse_api_info(item_fn, attr, method.as_str())?;
+                    let api_fn = parse_api_info(item_fn, attr, method.as_str(), default_tag)?;
                     let fn_full_crate_path = gen_fn_full_crate_path(
                         crate_ctx,
                         &path_buf,
@@ -257,8 +333,10 @@ pub fn parse_api_info(
     item_fn: &ItemFn,
     attr: &Attribute,
     method: &str,
+    default_tag: Option<&str>,
 ) -> Result<ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>>, Box<dyn Error>> {
     let api_macro_info = attr.parse_args::<ApiMacroInfo>()?;
+    let has_utoipa_path = has_utoipa_path_attr(&item_fn.attrs);
     let open_token = if let Some(open) = api_macro_info.open_token {
         open.value_token.value
     } else {
@@ -273,6 +351,31 @@ pub fn parse_api_info(
     }
     // extract doc comments
     let docs = extract_doc_comments(&item_fn.attrs);
+    let path = if let Some(path) = api_macro_info.path_token {
+        path.value_token.value()
+    } else {
+        "".to_string()
+    };
+    if path.trim().is_empty() && !has_utoipa_path {
+        return Err(format!(
+            "missing required 'path' in #[{}(...)] on function '{}'; add path = \"...\" or #[utoipa::path(...)]",
+            method, item_fn.sig.ident
+        )
+        .into());
+    }
+    let output = match &item_fn.sig.output {
+        syn::ReturnType::Default => None,
+        syn::ReturnType::Type(_, ty) => Some(ty.to_token_stream().to_string()),
+    };
+    let api_group = if let Some(tag_token) = api_macro_info.tag_token {
+        tag_token.value_token.value()
+    } else if let Some(group_token) = api_macro_info.group_token {
+        group_token.value_token.value()
+    } else if let Some(default_tag) = default_tag {
+        default_tag.to_string()
+    } else {
+        "Default".to_string()
+    };
 
     let api_fn = ApiFn {
         api_fn_name: item_fn.sig.ident.to_string(),
@@ -282,11 +385,7 @@ pub fn parse_api_info(
             Some(layers)
         },
         inputs: Some(item_fn.sig.inputs.clone()),
-        path: if let Some(path) = api_macro_info.path_token {
-            path.value_token.value()
-        } else {
-            "".to_string()
-        },
+        path,
         path_group: if let Some(path_group) = api_macro_info.path_group_token {
             path_group.value_token.value()
         } else {
@@ -305,24 +404,57 @@ pub fn parse_api_info(
                 api_macro_info.api_token.unwrap().value_token.value()
             },
             api_desc: if docs.len() > 1 {
-                let mut doc_str = String::new();
-                for x in docs.iter().skip(1) {
-                    doc_str = doc_str.add(x);
-                }
-                doc_str
+                docs.iter()
+                    .skip(1)
+                    .map(|line| line.trim())
+                    .filter(|line| !line.is_empty())
+                    .collect::<Vec<_>>()
+                    .join("\n")
             } else {
                 "".to_string()
             },
-            api_group: if let Some(group_token) = api_macro_info.group_token {
-                group_token.value_token.value()
-            } else {
-                "Default".to_string()
-            },
+            api_group,
         }),
         use_crate: None,
         attrs: Some(item_fn.attrs.clone()),
+        output,
+        has_utoipa_path,
         crate_prefix: String::new(),
         crate_name: None,
     };
     Ok(api_fn)
+}
+
+fn has_utoipa_path_attr(attrs: &[Attribute]) -> bool {
+    attrs.iter().any(|attr| {
+        let segments: Vec<_> = attr.meta.path().segments.iter().collect();
+        segments.len() > 1 && segments[0].ident == "utoipa" && segments[1].ident == "path"
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_mod_tag_attr;
+    use syn::Attribute;
+
+    #[test]
+    fn parse_mod_tag_attr_accepts_doc_directive() {
+        let attrs: Vec<Attribute> = vec![syn::parse_quote!(#[doc = "@tag Store"])];
+        assert_eq!(parse_mod_tag_attr(&attrs), Some("Store".to_string()));
+    }
+
+    #[test]
+    fn parse_mod_tag_attr_accepts_doc_directive_with_colon() {
+        let attrs: Vec<Attribute> = vec![syn::parse_quote!(#[doc = "@tag: Store"])];
+        assert_eq!(parse_mod_tag_attr(&attrs), Some("Store".to_string()));
+    }
+
+    #[test]
+    fn parse_mod_tag_attr_ignores_non_directive_like_text() {
+        let attrs: Vec<Attribute> = vec![
+            syn::parse_quote!(#[doc = "@tagging Store"]),
+            syn::parse_quote!(#[doc = "tag: Store"]),
+        ];
+        assert_eq!(parse_mod_tag_attr(&attrs), None);
+    }
 }

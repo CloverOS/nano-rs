@@ -32,11 +32,13 @@
     <li><a href="#快速开始">快速开始(Axum)</a>
     <ol>
         <li><a href="#路由注册自动生成">路由注册自动生成</a></li>
-        <li><a href="#Api文档生成">Api文档生成(基于utoipa)</a></li>
-        <li><a href="#Api信息收集生成">Api信息收集生成</a></li> 
+        <li><a href="#api文档生成">Api文档生成(基于utoipa)</a></li>
+        <li><a href="#api信息收集生成">Api信息收集生成</a></li>
+        <li><a href="#日志与请求链路追踪">日志与请求链路追踪</a></li>
+        <li><a href="#模块化示例">模块化示例</a></li>
     </ol>
     </li>
-    <li><a href="其他">其他</a>
+    <li><a href="#其他">其他</a>
       <ol>
          <li><a href="#seaorm从数据库生成postgresql注释">SeaOrm从数据库生成postgresql注释</a></li>
       </ol>
@@ -50,12 +52,18 @@
 
 ### 环境要求
 
-MSRV >= 1.85
+MSRV >= 1.94
 
 ### 安装
 
 ```shell
-  cargo add nano-rs
+cargo add nano-rs
+```
+
+该命令安装 crates.io 上最新的正式版本。如需在下个版本发布前使用当前开发线上的功能，请依赖 `main`：
+
+```shell
+cargo add nano-rs --git https://github.com/CloverOS/nano-rs --branch main
 ```
 
 ## 快速开始
@@ -66,16 +74,16 @@ MSRV >= 1.85
 
 ```toml
 [build-dependencies]
-nano-rs = "0.1.3"
-nano-rs-build = "0.1.2"
+nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
+nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
 ```
 
 - 添加生成组件 build.rs
 
 ```rust
 use std::error::Error;
-use nano_rs_build::core::NanoBuilder;
 use nano_rs::axum::generator::gen_route::AxumGenRoute;
+use nano_rs::core::NanoBuilder;
 
 fn main() -> Result<(), Box<dyn Error>> {
     NanoBuilder::new(None).gen_api_route(AxumGenRoute::new());
@@ -83,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
-- 将配置文件添加到你想要的目录（在示例中，它被放置在 [etc/config.yaml](https://github.com/CloverOS/nano-rs/blob/master/example/etc/config.yaml)）
+- 将配置文件添加到你想要的目录（在示例中，它被放置在 [etc/config.yaml](https://github.com/CloverOS/nano-rs/blob/main/example/etc/config.yaml)）
 
 ```yaml
 port: 8888
@@ -91,16 +99,20 @@ name: example
 host: 127.0.0.1
 ```
 
-- 在项目的任何地方用宏编写你的API代码（例如，在api/pet下），关于宏，请参考 [示例](https://github.com/CloverOS/nano-rs/blob/master/example/src/api)
+- 在项目的任何地方用宏编写你的API代码（例如，在api/pet下），关于宏，请参考 [示例](https://github.com/CloverOS/nano-rs/blob/main/example/src/api)
 
 ```rust
+use nano_rs::axum::errors::ServerError;
+use nano_rs::axum::rest::RestResp;
+use nano_rs::{biz_ok, get};
+
 #[get(path = "/store/name", layers = ["crate::layers::auth::auth_token1"])]
 pub async fn get_store_name() -> Result<RestResp<String>, ServerError> {
-    biz_ok("Doggy Store".to_string())
+    biz_ok!("Doggy Store".to_string())
 }
 ```
 
-- 运行一次构建（只需要对项目的第一次编译）
+- 构建项目。相关输入发生变化时，Cargo 会重新运行 `build.rs`。
 
 ```shell
 cargo build
@@ -112,29 +124,23 @@ cargo build
 
 ```rust
 use axum::Router;
-use nano_rs_core::config::rest::RestConfig;
 use axum_client_ip::ClientIpSource;
-use nano_rs_extra::axum::start::AppStarter;
+use nano_rs::axum::start::AppStarter;
+use nano_rs::config::init_config_with_cli;
+use nano_rs::config::rest::RestConfig;
 
 #[tokio::main]
 async fn main() {
-    let rest_config = nano_rs_core::config::init_config_with_cli::<RestConfig>();
-    let _guards = nano_rs_core::tracing::init_tracing(&rest_config);
-    let service_context = ServiceContext {
-        rest_config: rest_config.clone(),
-    };
-    let app = Router::new();
-    AppStarter::new(app, rest_config)
-        .add_log_layer()
-        /// 如果是使用nginx代理，需要使用ClientIpSource::XRealIp
+    let rest_config = init_config_with_cli::<RestConfig>();
+    let _guards = nano_rs::tracing::init_tracing(&rest_config);
+    let log_config = rest_config.log.clone();
+
+    AppStarter::new(Router::new(), rest_config)
+        .add_log_layer_with_config(Some(log_config))
+        // 可信反向代理设置 X-Real-IP 时可使用该来源。
         .add_secure_client_ip_source_layer(ClientIpSource::XRealIp)
         .run()
         .await;
-}
-
-#[derive(Clone)]
-pub struct ServiceContext {
-  pub rest_config: RestConfig, 
 }
 ```
 
@@ -152,17 +158,19 @@ cargo run -- --config etc/config.yaml
 
 ```toml
 [build-dependencies]
-nano-rs = { version = "0.1.3", features = ["utoipa_axum"] }
-nano-rs-build = "0.1.2"
-utoipa = { version = "5.1.1", features = ["axum_extras"] }
+nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main", features = ["utoipa_axum"] }
+nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
+utoipa = { version = "5.5.0", features = ["axum_extras"] }
 ```
 
 - 在 build.rs 中添加生成组件
 
 ```rust
 use std::error::Error;
-use nano_rs_build::core::NanoBuilder;
+use nano_rs::axum::generator::gen_doc::AxumGenDoc;
 use nano_rs::axum::generator::gen_route::AxumGenRoute;
+use nano_rs::core::NanoBuilder;
+use utoipa::openapi::{ContactBuilder, InfoBuilder, ServerBuilder};
 
 fn main() -> Result<(), Box<dyn Error>> {
     NanoBuilder::new(None)
@@ -191,7 +199,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
-- 编写 utoipa 代码，参见 [示例](https://github.com/CloverOS/nano-rs/blob/main/example/src/api/pet/store.rs)，更多文档请参考 [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum)
+- OpenAPI 现在支持 **两种写法**，并且旧的 `#[utoipa::path(...)]` 写法完全兼容。
+- 旧写法（继续支持）：完整编写 utoipa 注解。参考 [utoipa](https://github.com/juhaku/utoipa/tree/master/examples/todo-axum)。
 
 ```rust
 /// Get pet by id
@@ -200,24 +209,34 @@ fn main() -> Result<(), Box<dyn Error>> {
     path = "/store/pet",
     tag = "Store",
     params(QueryPet),
-    responses(
-        (status = 200, body = Pet)
-    )
+    responses((status = 200, body = Pet))
 )]
 #[get()]
-pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> {
-    biz_ok(Pet {
-        id: query.id,
-        name: "Doggy".to_string(),
-        tag: None,
-        inline: None,
-        meta: Meta { name: "Doggy".to_string(), age: 1 },
-    })
-}
+pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> { ... }
 ```
 
-- 如果启用了 utoipa_axum 特性，则不需要重复编写path和group等代码（除非需要一个中间层），只需编写 utoipa 代码，即可获取 openapi 文档和 axum 路由。
-- 运行一次构建（只需要对项目的第一次编译）
+- 新简写（推荐）：直接写 `#[get]/#[post]`，nano-rs 会根据入参提取器和返回类型自动推导 OpenAPI。
+
+```rust
+/// Query pet by id
+#[get(path = "/store/pet", tag = "Store")]
+pub async fn get_query_pet_name(
+    Query(query): Query<QueryPet>,
+) -> Result<RestResp<Pet>, ServerError> { ... }
+```
+
+- 支持模块级默认分组（减少每个接口重复写 `tag`）：
+
+```rust
+/// @tag Store
+pub mod store;
+```
+
+- 使用模块级 `/// @tag ...` 后，该模块内的接口可以省略 `tag`。
+- 如果存在多层嵌套模块，会继承最近父模块的 tag；如果子模块自己声明了 `/// @tag ...`，则优先使用子模块的 tag。
+- 除非处理函数同时使用了 `#[utoipa::path(...)]`，否则路由宏必须提供 `path = "..."`；旧写法会使用 utoipa 中的路径生成路由。
+- 如果两个注解都提供路径，两者必须完全一致。其他 utoipa 元数据会被保留，但路径不一致会给出明确错误并中止构建。
+- 构建项目。相关输入发生变化时，Cargo 会重新运行 `build.rs`。
 
 ```shell
 cargo build
@@ -239,13 +258,19 @@ cargo run -- --config etc/config.yaml
 
 ```toml
 [build-dependencies]
-nano-rs = "0.1.3"
-nano-rs-build = "0.1.2"
+nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
+nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
 ```
 
 - 添加 build.rs
 
 ```rust
+use std::error::Error;
+
+use nano_rs::axum::generator::gen_api_info::AxumGenApiInfo;
+use nano_rs::axum::generator::gen_route::AxumGenRoute;
+use nano_rs::core::NanoBuilder;
+
 fn main() -> Result<(), Box<dyn Error>> {
     NanoBuilder::new(None)
         .gen_api_route(AxumGenRoute::new())
@@ -254,18 +279,57 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 
-- 这将在你的 `src/` 中生成 `api_info.rs`，用于收集你所有的api信息，你可以使用 `get_api_info()` 获取所有api信息。
+- 这将在 `src/` 中生成 `api_info.rs`，你可以使用 `get_api_info()` 获取收集到的接口信息。
+- `routes.rs`、`doc.rs` 和 `api_info.rs` 都是生成文件，请勿手动修改，后续构建可能覆盖它们。
+
+### 日志与请求链路追踪
+
+日志文件按级别在 `log.level` 下分别配置：
+
+```yaml
+log:
+  enable_request_body_log: true
+  enable_response_body_log: false
+  ignore_resource:
+    - method: GET
+      path: /pets/{id}
+  level:
+    info:
+      file: true
+      dir: logs
+      max_files: 7
+    error:
+      file: true
+      dir: logs
+      max_files: 30
+```
+
+- 日志文件按天滚动。`max_files` 对每个日志级别独立生效，并包含当前文件；省略该字段或设置为 `0` 时不清理旧文件。
+- 请求链路追踪会复用非空的入站 `x-request-id`；没有可用值时生成 UUID，并将最终 ID 写入响应头和请求日志。
+- `ignore_resource` 会同时匹配配置的 HTTP 方法，以及实际请求路径或 Axum 路由模板，例如 `/pets/{id}`。
+- 启用响应体日志时，SSE 流和 WebSocket 升级会跳过响应体缓冲，避免阻塞流式响应或协议升级。
+- 如需注入自定义 tracing subscriber layer，可向 `nano_rs::tracing::init_tracing_with_layers` 传入 `nano_rs::tracing::DynTracingLayer`，同时保留内置日志配置。
+
+### 模块化示例
+
+跨 API、model 和 layer crate 的路由及 OpenAPI 生成方式可参考 [`example_modular`](https://github.com/CloverOS/nano-rs/tree/main/example_modular)。
+
+## 其他
 
 ### SeaOrm从数据库生成postgresql注释
 - 因为SeaOrm不支持从postgresql读取注释到实体类，所以我们提供了一个工具来生成注释。
 - 添加构建依赖
 ```toml
 [build-dependencies]
-nano-rs-extra = { version = "0.1.4" }
-tokio = { version = "1.34.0", features = ["full"] }
+nano-rs-extra = { git = "https://github.com/CloverOS/nano-rs", branch = "main", features = ["postgres"] }
+tokio = { version = "1.53.1", features = ["full"] }
 ```
 - 添加 build.rs
 ```rust
+use std::error::Error;
+
+use nano_rs_extra::sea_orm::postgres::gen_comments::GenComments;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let database_url = "postgres://test:test@localhost/test".to_string();
@@ -341,7 +405,7 @@ impl ActiveModelBehavior for ActiveModel {}
 - [x] 预置通用web服务配置（通过yaml管理）
 - [x] OpenApi自动生成 (基于 utoipa)
 
-有关建议功能（和已知问题）的完整列表，请参阅[未解决的问题](https://github.com/CloverOSe/nano-rs/issues)。
+有关建议功能（和已知问题）的完整列表，请参阅[未解决的问题](https://github.com/CloverOS/nano-rs/issues)。
 
 
 <!-- LICENSE -->

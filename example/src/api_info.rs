@@ -5,42 +5,42 @@ pub fn get_api_info() -> Vec<ApiInfo> {
     vec![
         ApiInfo { method : "get".to_owned(), path : "/samoyed/{name}".to_owned(),
         base_path : "".to_owned(), handler_fun : "hello".to_owned(), summary :
-        " Say Hello to name".to_owned(), public : false, group_name : "Samoyed"
+        "Say Hello to name".to_owned(), public : false, group_name : "Samoyed"
         .to_owned(), }, ApiInfo { method : "get".to_owned(), path : "/samoyed/miss"
         .to_owned(), base_path : "".to_owned(), handler_fun : "miss".to_owned(), summary
-        : " Miss mantou so much".to_owned(), public : false, group_name : "Samoyed"
+        : "Miss mantou so much".to_owned(), public : false, group_name : "Samoyed"
         .to_owned(), }, ApiInfo { method : "get".to_owned(), path : "/samoyed/name"
         .to_owned(), base_path : "".to_owned(), handler_fun : "name".to_owned(), summary
-        : " Get Samoyed name".to_owned(), public : false, group_name : "Samoyed"
+        : "Get Samoyed name".to_owned(), public : false, group_name : "Samoyed"
         .to_owned(), }, ApiInfo { method : "post".to_owned(), path : "/samoyed/shower"
         .to_owned(), base_path : "".to_owned(), handler_fun : "shower".to_owned(),
-        summary : " Give your Samoyed a bath".to_owned(), public : false, group_name :
+        summary : "Give your Samoyed a bath".to_owned(), public : false, group_name :
         "Samoyed".to_owned(), }, ApiInfo { method : "post".to_owned(), path :
         "/store/pet/form".to_owned(), base_path : "".to_owned(), handler_fun :
-        "add_form_pet".to_owned(), summary : " Add a new pet to the store(form)"
+        "add_form_pet".to_owned(), summary : "Add a new pet to the store(form)"
         .to_owned(), public : false, group_name : "Store".to_owned(), }, ApiInfo { method
         : "post".to_owned(), path : "/store/pet/json".to_owned(), base_path : ""
         .to_owned(), handler_fun : "add_json_pet".to_owned(), summary :
-        " Add a new pet to the store(json)".to_owned(), public : false, group_name :
+        "Add a new pet to the store(json)".to_owned(), public : false, group_name :
         "Store".to_owned(), }, ApiInfo { method : "get".to_owned(), path :
         "/store/pet/{id}".to_owned(), base_path : "".to_owned(), handler_fun :
-        "get_pet_name".to_owned(), summary : " Get pet by id".to_owned(), public : false,
+        "get_pet_name".to_owned(), summary : "Get pet by id".to_owned(), public : false,
         group_name : "Store".to_owned(), }, ApiInfo { method : "get".to_owned(), path :
         "/store/pet/list/{page}/{count}/{id}".to_owned(), base_path : "".to_owned(),
-        handler_fun : "get_pet_name_list".to_owned(), summary : " Get pet list by id"
+        handler_fun : "get_pet_name_list".to_owned(), summary : "Get Pet list by id"
         .to_owned(), public : false, group_name : "Store".to_owned(), }, ApiInfo { method
         : "get".to_owned(), path : "/store/pet".to_owned(), base_path : "".to_owned(),
-        handler_fun : "get_query_pet_name".to_owned(), summary : " Query pet by id"
+        handler_fun : "get_query_pet_name".to_owned(), summary : "Query pet by id"
         .to_owned(), public : false, group_name : "Store".to_owned(), }, ApiInfo { method
         : "get".to_owned(), path : "/store/name".to_owned(), base_path : "".to_owned(),
         handler_fun : "get_store_name".to_owned(), summary :
-        " Get the default pet store name".to_owned(), public : false, group_name :
-        "Store".to_owned(), }, ApiInfo { method : "get".to_owned(), path : "/store/tel"
+        "Get the default pet store name".to_owned(), public : false, group_name : "Store"
+        .to_owned(), }, ApiInfo { method : "get".to_owned(), path : "/store/tel"
         .to_owned(), base_path : "".to_owned(), handler_fun : "get_store_tel".to_owned(),
-        summary : " Get Store's telephone number".to_owned(), public : false, group_name
-        : "Store".to_owned(), }, ApiInfo { method : "post".to_owned(), path :
+        summary : "Get Store's telephone number".to_owned(), public : false, group_name :
+        "Store".to_owned(), }, ApiInfo { method : "post".to_owned(), path :
         "/store/pet/list/{page}/{count}".to_owned(), base_path : "".to_owned(),
-        handler_fun : "pet_page_list".to_owned(), summary : " Get pet list".to_owned(),
+        handler_fun : "pet_page_list".to_owned(), summary : "Get pet list".to_owned(),
         public : false, group_name : "Store".to_owned(), }
     ]
 }

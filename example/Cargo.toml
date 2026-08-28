@@ -10,13 +10,13 @@ axum = { workspace = true }
 axum-client-ip = { workspace = true }
 nano-rs = { path = "../nano-rs", features = ["postgres", "utoipa_axum"] }
 serde = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tower-http = { workspace = true }
-utoipa = { version = "5.3.0", features = ["axum_extras"] }
+utoipa = { workspace = true }
 utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
 
 
-sea-orm = { version = "1.1.0", default-features = false, features = [
+sea-orm = { version = "2.0.0", default-features = false, features = [
   "macros",
   "runtime-tokio-rustls",
   "sqlx-postgres",
@@ -25,7 +25,7 @@ sea-orm = { version = "1.1.0", default-features = false, features = [
 
 [build-dependencies]
 nano-rs = { path = "../nano-rs", features = ["postgres", "utoipa_axum"] }
-utoipa = { version = "5.1.1", features = ["axum_extras"] }
+utoipa = { workspace = true }
 
 [profile.release]
 codegen-units = 1
