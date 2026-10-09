@@ -161,8 +161,15 @@ cargo run -- --config etc/config.yaml
 [build-dependencies]
 nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main", features = ["utoipa_axum"] }
 nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
-utoipa = { version = "5.5.0", features = ["axum_extras"] }
+utoipa = { version = "6.0.0", features = ["axum_extras"] }
 ```
+
+- When upgrading from utoipa 5, update utoipa to version 6 in both `[dependencies]` and `[build-dependencies]`, including crates that define API models.
+  `AxumGenDoc` accepts utoipa types such as `Info` and `Server`, so these types must come from the same major version.
+  If you use RapiDoc, also upgrade to `utoipa-rapidoc = { version = "7.0.0", features = ["axum"] }`.
+  Generated documents continue to use OpenAPI 3.1.0 by default; OpenAPI 3.2 is opt-in.
+  utoipa 6 omits empty response descriptions. nano-rs supplies `OK` for inferred successful responses;
+  when writing `#[utoipa::path(...)]` manually, provide a non-empty response description so the field required by OpenAPI 3.1 is serialized.
 
 - Add gen component to build.rs
 
@@ -210,7 +217,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     path = "/store/pet",
     tag = "Store",
     params(QueryPet),
-    responses((status = 200, body = Pet))
+    responses((status = 200, description = "OK", body = Pet))
 )]
 #[get()]
 pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> { ... }

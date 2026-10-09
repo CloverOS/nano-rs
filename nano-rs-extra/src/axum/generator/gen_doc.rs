@@ -446,11 +446,12 @@ impl AxumGenDoc {
             }
             None => quote! {},
         };
+        // utoipa 6 omits empty descriptions, but OpenAPI 3.1 requires this field.
         let response_code = match spec.response {
             ResponseSpec::Body(ty) => {
                 quote! {
                     responses(
-                        (status = 200, body = #ty),
+                        (status = 200, description = "OK", body = #ty),
                         (status = 500, description = "Internal Server Error")
                     )
                 }
@@ -458,7 +459,7 @@ impl AxumGenDoc {
             ResponseSpec::StatusOnly => {
                 quote! {
                     responses(
-                        (status = 200)
+                        (status = 200, description = "OK")
                     )
                 }
             }
@@ -766,8 +767,7 @@ impl AxumGenDoc {
                     }
                 }
                 Item::Enum(item_enum) => {
-                    if Self::has_to_schema(&item_enum.attrs)
-                        && item_enum.generics.params.is_empty()
+                    if Self::has_to_schema(&item_enum.attrs) && item_enum.generics.params.is_empty()
                     {
                         let ident = item_enum.ident.to_string();
                         let path = if root_reexports.contains(&ident) {
@@ -989,7 +989,9 @@ mod tests {
         let doc = AxumGenDoc::new().build();
         let mut api_fn: ApiFn<String, Punctuated<FnArg, Comma>, Vec<ItemUse>, Vec<Attribute>> =
             ApiFn::default();
-        api_fn.use_crate = Some(vec![syn::parse_quote!(use basic_model::{PageData, Pet};)]);
+        api_fn.use_crate = Some(vec![syn::parse_quote!(
+            use basic_model::{PageData, Pet};
+        )]);
 
         let mut ty = parse_str::<Type>("PageData<Pet>").expect("parse type");
         doc.rewrite_type_paths(&mut ty, "crate::api::handler", &api_fn);

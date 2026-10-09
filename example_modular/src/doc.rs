@@ -6,7 +6,7 @@ use utoipa::OpenApi;
     tag = "Samoyed",
     summary = "Get Samoyed name",
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -17,7 +17,7 @@ fn __nano_auto_doc_0_name() {}
     tag = "Samoyed",
     summary = "Give your Samoyed a bath",
     responses(
-        (status = 200, body = example_modular_model::PetShower),
+        (status = 200, description = "OK", body = example_modular_model::PetShower),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -32,7 +32,7 @@ fn __nano_auto_doc_1_shower() {}
         content_type = "application/x-www-form-urlencoded"
     ),
     responses(
-        (status = 200, body = example_modular_model::Pet),
+        (status = 200, description = "OK", body = example_modular_model::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -44,7 +44,7 @@ fn __nano_auto_doc_2_handler() {}
     summary = "Add a new pet to the store(json)",
     request_body = example_modular_model::Pet,
     responses(
-        (status = 200, body = example_modular_model::Pet),
+        (status = 200, description = "OK", body = example_modular_model::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -56,7 +56,7 @@ fn __nano_auto_doc_3_handler() {}
     summary = "Get pet by id",
     params(example_modular_model::Params),
     responses(
-        (status = 200, body = example_modular_model::Pet),
+        (status = 200, description = "OK", body = example_modular_model::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -67,7 +67,7 @@ fn __nano_auto_doc_4_handler() {}
     tag = "Store",
     summary = "Get store name",
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -78,7 +78,7 @@ fn __nano_auto_doc_5_handler() {}
     tag = "Store",
     summary = "Get Store's telephone number",
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -92,6 +92,7 @@ fn __nano_auto_doc_6_handler() {}
     responses(
         (
             status = 200,
+            description = "OK",
             body = example_modular_model::PageData<example_modular_model::Pet>
         ),
         (status = 500, description = "Internal Server Error")
@@ -105,7 +106,7 @@ fn __nano_auto_doc_7_handler() {}
     summary = "Get pet list",
     params(example_modular_model::Page),
     responses(
-        (status = 200, body = Vec<example_modular_model::Pet>),
+        (status = 200, description = "OK", body = Vec<example_modular_model::Pet>),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -117,7 +118,7 @@ fn __nano_auto_doc_8_handler() {}
     summary = "Query pet by id",
     params(example_modular_model::QueryPet),
     responses(
-        (status = 200, body = example_modular_model::Pet),
+        (status = 200, description = "OK", body = example_modular_model::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]

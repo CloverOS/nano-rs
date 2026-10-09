@@ -13,7 +13,7 @@ serde = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tower-http = { workspace = true }
 utoipa = { workspace = true }
-utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
+utoipa-rapidoc = { version = "7.0.0", features = ["axum"] }
 
 
 sea-orm = { version = "2.0.0", default-features = false, features = [

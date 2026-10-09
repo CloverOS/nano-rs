@@ -160,8 +160,15 @@ cargo run -- --config etc/config.yaml
 [build-dependencies]
 nano-rs = { git = "https://github.com/CloverOS/nano-rs", branch = "main", features = ["utoipa_axum"] }
 nano-rs-build = { git = "https://github.com/CloverOS/nano-rs", branch = "main" }
-utoipa = { version = "5.5.0", features = ["axum_extras"] }
+utoipa = { version = "6.0.0", features = ["axum_extras"] }
 ```
+
+- 从 utoipa 5 升级时，请将 `[dependencies]` 和 `[build-dependencies]` 中的 utoipa 统一升级到 6，包括定义 API 模型的 crate。
+  `AxumGenDoc` 接收 utoipa 的 `Info`、`Server` 等类型，因此这些类型必须来自同一主版本。
+  如果使用 RapiDoc，还需同步升级为 `utoipa-rapidoc = { version = "7.0.0", features = ["axum"] }`。
+  生成的文档默认仍为 OpenAPI 3.1.0；OpenAPI 3.2 需要主动启用。
+  utoipa 6 会省略空的响应说明。nano-rs 会为自动推断的成功响应补上 `OK`；
+  手写 `#[utoipa::path(...)]` 时，请提供非空的响应 `description`，以满足 OpenAPI 3.1 的要求。
 
 - 在 build.rs 中添加生成组件
 
@@ -209,7 +216,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     path = "/store/pet",
     tag = "Store",
     params(QueryPet),
-    responses((status = 200, body = Pet))
+    responses((status = 200, description = "OK", body = Pet))
 )]
 #[get()]
 pub async fn get_query_pet_name(Query(query): Query<QueryPet>) -> Result<RestResp<Pet>, ServerError> { ... }

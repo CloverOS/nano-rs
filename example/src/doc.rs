@@ -7,7 +7,7 @@ use utoipa::OpenApi;
     summary = "Say Hello to name",
     params(("name" = String, Path)),
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -18,7 +18,7 @@ fn __nano_auto_doc_0_hello() {}
     tag = "Samoyed",
     summary = "Miss mantou so much",
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -29,7 +29,7 @@ fn __nano_auto_doc_1_miss() {}
     tag = "Samoyed",
     summary = "Get Samoyed name",
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -40,7 +40,7 @@ fn __nano_auto_doc_2_name() {}
     tag = "Samoyed",
     summary = "Give your Samoyed a bath",
     responses(
-        (status = 200, body = crate::types::pet::PetShower),
+        (status = 200, description = "OK", body = crate::types::pet::PetShower),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -55,7 +55,7 @@ fn __nano_auto_doc_3_shower() {}
         content_type = "application/x-www-form-urlencoded"
     ),
     responses(
-        (status = 200, body = crate::model::pet::Pet),
+        (status = 200, description = "OK", body = crate::model::pet::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -67,7 +67,7 @@ fn __nano_auto_doc_4_add_form_pet() {}
     summary = "Add a new pet to the store(json)",
     request_body = crate::model::pet::Pet,
     responses(
-        (status = 200, body = crate::model::pet::Pet),
+        (status = 200, description = "OK", body = crate::model::pet::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -79,7 +79,7 @@ fn __nano_auto_doc_5_add_json_pet() {}
     summary = "Get pet by id",
     params(crate::model::pet::Params),
     responses(
-        (status = 200, body = crate::model::pet::Pet),
+        (status = 200, description = "OK", body = crate::model::pet::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -91,7 +91,7 @@ fn __nano_auto_doc_6_get_pet_name() {}
     summary = "Get Pet list by id",
     params(crate::model::pet::Page, crate::model::pet::Params),
     responses(
-        (status = 200, body = crate::model::pet::Pet),
+        (status = 200, description = "OK", body = crate::model::pet::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -103,7 +103,7 @@ fn __nano_auto_doc_7_get_pet_name_list() {}
     summary = "Query pet by id",
     params(crate::model::pet::QueryPet),
     responses(
-        (status = 200, body = crate::model::pet::Pet),
+        (status = 200, description = "OK", body = crate::model::pet::Pet),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -114,7 +114,7 @@ fn __nano_auto_doc_8_get_query_pet_name() {}
     tag = "Store",
     summary = "Get the default pet store name",
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -125,7 +125,7 @@ fn __nano_auto_doc_9_get_store_name() {}
     tag = "Store",
     summary = "Get Store's telephone number",
     responses(
-        (status = 200, body = String),
+        (status = 200, description = "OK", body = String),
         (status = 500, description = "Internal Server Error")
     )
 )]
@@ -137,7 +137,7 @@ fn __nano_auto_doc_10_get_store_tel() {}
     summary = "Get pet list",
     params(crate::model::pet::Page),
     responses(
-        (status = 200, body = Vec<crate::model::pet::Pet>),
+        (status = 200, description = "OK", body = Vec<crate::model::pet::Pet>),
         (status = 500, description = "Internal Server Error")
     )
 )]
