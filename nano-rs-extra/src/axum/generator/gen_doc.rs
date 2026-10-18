@@ -1,7 +1,8 @@
+use crate::axum::generator::AxumGen;
 use crate::axum::generator::cache::{DocSchemaCache, FileFingerprint};
+use crate::axum::generator::format::write_rust_source;
 #[cfg(feature = "utoipa_axum")]
 use crate::axum::generator::parse_utoipa_info;
-use crate::axum::generator::{AxumGen, write_if_changed};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -237,17 +238,7 @@ impl GenDoc for AxumGenDoc {
         let syntax_tree: syn::File = syn::parse2(doc_code).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
         let _ =
-            write_if_changed(docs.as_path(), formatted.as_str()).expect("write doc file failed");
-        // let output = Command::new("rustfmt")
-        //     .arg(docs.as_path())
-        //     .output()
-        //     .expect("Failed to execute rustfmt");
-        // if !output.status.success() {
-        //     eprintln!(
-        //         "Rustfmt failed: {}",
-        //         String::from_utf8_lossy(&output.stderr)
-        //     );
-        // }
+            write_rust_source(docs.as_path(), formatted.as_str()).expect("write doc file failed");
     }
 }
 

@@ -27,9 +27,7 @@ pub fn get_routes(
         .merge(get_routes_without_state())
         .merge(get_routes_without_state_with_layer_crate_layers_auth_auth_token1())
 }
-pub fn get_routes_crate_service_context(
-    crate_service_context: crate::ServiceContext,
-) -> Router {
+pub fn get_routes_crate_service_context(crate_service_context: crate::ServiceContext) -> Router {
     Router::new()
         .route("/samoyed/name", get(crate::api::pet::samoyed::name))
         .route("/samoyed/{name}", get(crate::api::pet::samoyed::hello))
@@ -40,12 +38,10 @@ pub fn get_routes_crate_service_context_with_layer_crate_layers_auth_auth_token_
 ) -> Router {
     Router::new()
         .route("/samoyed/shower", post(crate::api::pet::samoyed::shower))
-        .route_layer(
-            axum::middleware::from_fn_with_state(
-                crate_service_context.clone(),
-                crate::layers::auth::auth_token,
-            ),
-        )
+        .route_layer(axum::middleware::from_fn_with_state(
+            crate_service_context.clone(),
+            crate::layers::auth::auth_token,
+        ))
         .route_layer(axum::middleware::from_fn(crate::layers::auth::auth_token1))
         .with_state(crate_service_context)
 }
@@ -53,8 +49,14 @@ pub fn get_routes_nano_rs_config_rest_rest_config(
     nano_rs_config_rest_rest_config: nano_rs::config::rest::RestConfig,
 ) -> Router {
     Router::new()
-        .route("/store/pet/form", post(crate::api::pet::store::add_form_pet))
-        .route("/store/pet/json", post(crate::api::pet::store::add_json_pet))
+        .route(
+            "/store/pet/form",
+            post(crate::api::pet::store::add_form_pet),
+        )
+        .route(
+            "/store/pet/json",
+            post(crate::api::pet::store::add_json_pet),
+        )
         .route(
             "/store/pet/list/{page}/{count}",
             post(crate::api::pet::store::pet_page_list),
@@ -67,18 +69,19 @@ pub fn get_routes_nano_rs_config_rest_rest_config_with_layer_crate_layers_auth_a
 ) -> Router {
     Router::new()
         .route("/store/tel", get(crate::api::pet::store::get_store_tel))
-        .route_layer(
-            axum::middleware::from_fn_with_state(
-                crate_service_context,
-                crate::layers::auth::auth_token,
-            ),
-        )
+        .route_layer(axum::middleware::from_fn_with_state(
+            crate_service_context,
+            crate::layers::auth::auth_token,
+        ))
         .with_state(nano_rs_config_rest_rest_config)
 }
 pub fn get_routes_without_state() -> Router {
     Router::new()
         .route("/samoyed/miss", get(crate::api::pet::samoyed::miss))
-        .route("/store/pet", get(crate::api::pet::store::get_query_pet_name))
+        .route(
+            "/store/pet",
+            get(crate::api::pet::store::get_query_pet_name),
+        )
         .route(
             "/store/pet/list/{page}/{count}/{id}",
             get(crate::api::pet::store::get_pet_name_list),

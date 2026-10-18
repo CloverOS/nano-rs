@@ -13,6 +13,7 @@ use syn::{Attribute, FnArg};
 use syn::{ItemUse, UseGroup, UseName, UsePath, UseRename, UseTree};
 
 pub(crate) mod cache;
+mod format;
 pub mod gen_api_info;
 #[cfg(feature = "utoipa_axum")]
 pub mod gen_doc;

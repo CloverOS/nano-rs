@@ -1,7 +1,7 @@
 use crate::axum::generator::cache;
+use crate::axum::generator::format::{format_existing_rust_file, write_rust_source};
 #[cfg(feature = "utoipa_axum")]
 use crate::axum::generator::parse_utoipa_info;
-use crate::axum::generator::write_if_changed;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::collections::HashMap;
@@ -59,6 +59,7 @@ impl GenApiInfo for AxumGenApiInfo {
                 .filter(|stored| stored == &fingerprint_value)
                 .is_some();
             if cache_hit && api_info.exists() {
+                format_existing_rust_file(api_info.as_path()).expect("write api info file failed");
                 return;
             }
             fingerprint = Some(fingerprint_value);
@@ -110,7 +111,7 @@ impl GenApiInfo for AxumGenApiInfo {
 
         let syntax_tree: syn::File = syn::parse2(api_info_code).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
-        let _ = write_if_changed(api_info.as_path(), formatted.as_str())
+        let _ = write_rust_source(api_info.as_path(), formatted.as_str())
             .expect("write api info file failed");
         if cache_enabled {
             if let Some(fingerprint) = fingerprint.as_ref() {
@@ -119,16 +120,6 @@ impl GenApiInfo for AxumGenApiInfo {
                 }
             }
         }
-        // let output = Command::new("rustfmt")
-        //     .arg(api_info.as_path())
-        //     .output()
-        //     .expect("Failed to execute rustfmt");
-        // if !output.status.success() {
-        //     eprintln!(
-        //         "Rustfmt failed: {}",
-        //         String::from_utf8_lossy(&output.stderr)
-        //     );
-        // }
     }
 }
 

@@ -294,6 +294,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 - This generates `api_info.rs` in `src/`; use `get_api_info()` to access the collected endpoint metadata.
 - `routes.rs`, `doc.rs`, and `api_info.rs` are generated files. Do not edit them by hand because a later build can overwrite them.
+- Generated Rust files are automatically formatted with `rustfmt` (edition 2024), using the configuration discovered from their directory. Cached output is
+  formatted too, and unchanged files are not rewritten. If `rustfmt` is unavailable or fails, generation continues with a build warning and keeps the generated
+  content. Install it with `rustup component add rustfmt`.
 
 ### Logging and Request Tracing
 

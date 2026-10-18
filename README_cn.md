@@ -288,6 +288,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 - 这将在 `src/` 中生成 `api_info.rs`，你可以使用 `get_api_info()` 获取收集到的接口信息。
 - `routes.rs`、`doc.rs` 和 `api_info.rs` 都是生成文件，请勿手动修改，后续构建可能覆盖它们。
+- 生成的 Rust 文件会自动使用 `rustfmt`（edition 2024）格式化，并从文件所在目录查找项目格式配置。命中缓存的文件也会格式化，内容不变时不会重复写入。若 `rustfmt`
+  未安装或执行失败，会输出构建警告并保留原生成内容，不中断构建；可通过 `rustup component add rustfmt` 安装。
 
 ### 日志与请求链路追踪
 

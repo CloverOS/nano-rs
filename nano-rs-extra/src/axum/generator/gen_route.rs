@@ -1,6 +1,7 @@
+use crate::axum::generator::format::{format_existing_rust_file, write_rust_source};
 #[cfg(feature = "utoipa_axum")]
 use crate::axum::generator::parse_utoipa_info;
-use crate::axum::generator::{AxumGen, cache, write_if_changed};
+use crate::axum::generator::{AxumGen, cache};
 use nano_rs_build::api_fn::ApiFn;
 use nano_rs_build::api_gen::GenRoute;
 use proc_macro2::{Span, TokenStream};
@@ -82,6 +83,7 @@ impl GenRoute for AxumGenRoute {
                 .filter(|stored| stored == &fingerprint_value)
                 .is_some();
             if cache_hit && routes.exists() {
+                format_existing_rust_file(routes.as_path()).expect("write route file failed");
                 return;
             }
             fingerprint = Some(fingerprint_value);
@@ -273,7 +275,7 @@ impl GenRoute for AxumGenRoute {
         );
         let syntax_tree: syn::File = syn::parse2(complete_code).unwrap();
         let formatted = prettyplease::unparse(&syntax_tree);
-        let _ = write_if_changed(routes.as_path(), formatted.as_str())
+        let _ = write_rust_source(routes.as_path(), formatted.as_str())
             .expect("write route file failed");
         if cache_enabled {
             if let Some(fingerprint) = fingerprint.as_ref() {
@@ -282,16 +284,6 @@ impl GenRoute for AxumGenRoute {
                 }
             }
         }
-        // let output = Command::new("rustfmt")
-        //     .arg(routes.as_path())
-        //     .output()
-        //     .expect("Failed to execute rustfmt");
-        // if !output.status.success() {
-        //     eprintln!(
-        //         "Rustfmt failed: {}",
-        //         String::from_utf8_lossy(&output.stderr)
-        //     );
-        // }
     }
 }
 
