@@ -325,6 +325,36 @@ log:
 - Use `nano_rs::tracing::init_tracing_with_layers` with `nano_rs::tracing::DynTracingLayer` values to attach custom tracing subscriber layers while retaining
   the built-in logging configuration.
 
+Each request handled by the logging middleware runs inside an `INFO`-level `http_request` span with `request_id`, `method`, `path`, and `ip` fields.
+Handler logs, directly awaited calls, and nested spans share this context; the built-in console and file formats display it alongside business logs.
+`ignore_resource` skips access logs and body buffering while preserving this context. Setting `log.log_req: false` in `AppStarter` skips the middleware
+entirely, including request ID generation, response-header injection, and request span creation.
+
+Replace task creation inside handlers with the context-preserving helpers:
+
+```rust
+let async_task = nano_rs::task::spawn( async move {
+tracing::info ! ("processing background work");
+nano_rs::task::spawn(async { 42 }).await
+});
+
+let blocking_task = nano_rs::task::spawn_blocking(move | | {
+tracing::info ! ("processing blocking work");
+42
+});
+```
+
+Both helpers capture the current span and subscriber when called and return Tokio `JoinHandle`s with the usual result, panic, and cancellation behavior.
+Started blocking tasks cannot be aborted. Use a helper at every task boundary, including nested tasks; a captured request context remains available even
+after the response is returned. Outside a request, the helpers preserve any existing tracing context without generating a request ID.
+Raw Tokio spawns, SSE producers, and WebSocket background tasks still need explicit context propagation. These helpers do not add cross-service tracing.
+
+The request span respects the existing subscriber filters. If `INFO` spans from the middleware are filtered out, the response ID still exists but logs
+cannot inherit it through that span. When `log.level` is configured, use a directive such as
+`RUST_LOG=warn,nano_rs_extra::axum::middleware::trace=info` to enable the middleware; the existing `log.level` configuration still sets the global default.
+When `log.level` is omitted, add
+`nano_rs_extra::axum::middleware::trace: { level: info }` under `log.logging` instead. Custom subscribers need the equivalent filter setting.
+
 ### Modular Example
 
 See [`example_modular`](https://github.com/CloverOS/nano-rs/tree/main/example_modular) for route and OpenAPI generation across separate API, model, and layer

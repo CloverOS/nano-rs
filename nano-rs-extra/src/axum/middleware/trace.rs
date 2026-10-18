@@ -1,3 +1,10 @@
+//! Request access logs and their shared `INFO`-level `http_request` span.
+//!
+//! Handler logs and directly awaited work inherit the span. Spawned work must
+//! propagate it explicitly, for example with [`crate::task::spawn`]. The span
+//! remains subject to the subscriber's filters, including when access logging
+//! for a resource is skipped by `ignore_resource`.
+
 use std::time::Instant;
 
 use axum::body::{Body, Bytes};
@@ -10,6 +17,7 @@ use axum_client_ip::ClientIp;
 use http_body_util::BodyExt;
 use nano_rs_core::config::logger::LogConfig;
 use serde::{Deserialize, Serialize};
+use tracing::Instrument;
 use uuid::Uuid;
 
 pub(crate) const REQUEST_ID_HEADER: &str = "x-request-id";
@@ -83,73 +91,84 @@ pub(crate) async fn run_trace_core(
     let request_id = resolve_request_id(req.headers());
     let method = req.method().to_string();
     let path = req.uri().to_string();
-    let actual_path = req.uri().path();
-    let matched_path = req
-        .extensions()
-        .get::<MatchedPath>()
-        .map(MatchedPath::as_str);
     let ip = secure_ip.0.to_string();
+    let span = tracing::info_span!(
+        "http_request",
+        request_id = %request_id,
+        method = %method,
+        path = %path,
+        ip = %ip,
+    );
 
-    if should_ignore_trace(log_config, method.as_str(), actual_path, matched_path) {
-        return Ok(early_return_with_request_id(next, req, &request_id).await);
-    }
-
-    let mut req_info = mode.uses_body_log().then(|| RequestInfo {
-        request_id: request_id.clone(),
-        method: method.clone(),
-        path: path.clone(),
-        ip: ip.clone(),
-        req_body: None,
-        resp_body: None,
-        duration: String::new(),
-    });
-
-    let req = if mode.log_request_body {
-        let (parts, body) = req.into_parts();
-        let bytes = buffer_printer(body).await?;
-        if let Ok(body) = std::str::from_utf8(&bytes) {
-            if let Some(info) = req_info.as_mut() {
-                info.req_body = Some(body.to_string());
-            }
+    async move {
+        let actual_path = req.uri().path();
+        let matched_path = req
+            .extensions()
+            .get::<MatchedPath>()
+            .map(MatchedPath::as_str);
+        if should_ignore_trace(log_config, method.as_str(), actual_path, matched_path) {
+            return Ok(early_return_with_request_id(next, req, &request_id).await);
         }
-        Request::from_parts(parts, Body::from(bytes))
-    } else {
-        req
-    };
 
-    if is_websocket_upgrade_request(req.headers()) {
-        log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
-        return Ok(early_return_with_request_id(next, req, &request_id).await);
-    }
+        let mut req_info = mode.uses_body_log().then(|| RequestInfo {
+            request_id: request_id.clone(),
+            method: method.clone(),
+            path: path.clone(),
+            ip: ip.clone(),
+            req_body: None,
+            resp_body: None,
+            duration: String::new(),
+        });
 
-    if mode.log_response_body && is_sse_request(req.headers()) {
-        log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
-        return Ok(early_return_with_request_id(next, req, &request_id).await);
-    }
+        let req = if mode.log_request_body {
+            let (parts, body) = req.into_parts();
+            let bytes = buffer_printer(body).await?;
+            if let Ok(body) = std::str::from_utf8(&bytes) {
+                if let Some(info) = req_info.as_mut() {
+                    info.req_body = Some(body.to_string());
+                }
+            }
+            Request::from_parts(parts, Body::from(bytes))
+        } else {
+            req
+        };
 
-    let mut res = next.run(req).await;
+        if is_websocket_upgrade_request(req.headers()) {
+            log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
+            return Ok(early_return_with_request_id(next, req, &request_id).await);
+        }
 
-    if mode.log_response_body && is_sse_response(res.headers()) {
+        if mode.log_response_body && is_sse_request(req.headers()) {
+            log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
+            return Ok(early_return_with_request_id(next, req, &request_id).await);
+        }
+
+        let mut res = next.run(req).await;
+
+        if mode.log_response_body && is_sse_response(res.headers()) {
+            set_request_id_header(res.headers_mut(), &request_id);
+            log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
+            return Ok(res);
+        }
+
+        if mode.log_response_body {
+            let (parts, body) = res.into_parts();
+            let bytes = buffer_printer(body).await?;
+            if let Ok(body) = std::str::from_utf8(&bytes) {
+                if let Some(info) = req_info.as_mut() {
+                    info.resp_body = Some(body.to_string());
+                }
+            }
+            res = Response::from_parts(parts, Body::from(bytes));
+        }
+
         set_request_id_header(res.headers_mut(), &request_id);
         log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
-        return Ok(res);
+
+        Ok(res)
     }
-
-    if mode.log_response_body {
-        let (parts, body) = res.into_parts();
-        let bytes = buffer_printer(body).await?;
-        if let Ok(body) = std::str::from_utf8(&bytes) {
-            if let Some(info) = req_info.as_mut() {
-                info.resp_body = Some(body.to_string());
-            }
-        }
-        res = Response::from_parts(parts, Body::from(bytes));
-    }
-
-    set_request_id_header(res.headers_mut(), &request_id);
-    log_trace(start, &request_id, &method, &path, &ip, req_info.as_mut());
-
-    Ok(res)
+    .instrument(span)
+    .await
 }
 
 fn log_trace(

@@ -317,6 +317,35 @@ log:
 - 启用响应体日志时，SSE 流和 WebSocket 升级会跳过响应体缓冲，避免阻塞流式响应或协议升级。
 - 如需注入自定义 tracing subscriber layer，可向 `nano_rs::tracing::init_tracing_with_layers` 传入 `nano_rs::tracing::DynTracingLayer`，同时保留内置日志配置。
 
+经过请求日志中间件的请求会运行在 `INFO` 级 `http_request` span 中，包含 `request_id`、`method`、`path` 和 `ip`。
+handler、直接 `.await` 的调用以及嵌套 span 中的业务日志会共享该上下文，内置控制台和文件格式会显示这些字段。
+`ignore_resource` 只跳过访问日志和 body 缓冲，仍保留请求上下文。通过 `AppStarter` 设置 `log.log_req: false` 时，
+整个请求日志中间件都会跳过，不生成请求 ID、不写入响应头，也不创建请求 span。
+
+业务在 handler 中创建任务时，可替换为以下接口来传递上下文：
+
+```rust
+let async_task = nano_rs::task::spawn( async move {
+tracing::info ! ("执行后台任务");
+nano_rs::task::spawn(async { 42 }).await
+});
+
+let blocking_task = nano_rs::task::spawn_blocking(move | | {
+tracing::info ! ("执行阻塞任务");
+42
+});
+```
+
+两个接口都会在调用时捕获当前 span 和 subscriber，返回 Tokio 的 `JoinHandle`，保留原有返回值、panic 和取消行为；
+已经开始执行的阻塞任务不能通过 `abort` 取消。每次创建任务都需要传递上下文，包括嵌套任务。
+HTTP 响应返回后，已捕获上下文的任务仍能关联到原来的请求 ID；在请求外调用时，只保留已有 tracing 上下文，不生成新 ID。
+原生 Tokio spawn、SSE 后续生产任务和 WebSocket 后台任务仍需显式传播上下文。这些接口不提供跨服务追踪。
+
+请求 span 遵循现有 subscriber 过滤规则。如果框架的 `INFO` span 被过滤掉，响应仍有 ID，但日志无法通过该 span 继承 ID。
+配置了 `log.level` 时，可用 `RUST_LOG=warn,nano_rs_extra::axum::middleware::trace=info` 单独开启中间件的 `INFO` 级别；
+全局默认级别还会由已有 `log.level` 配置决定。未配置 `log.level` 时，可在 `log.logging` 下添加
+`nano_rs_extra::axum::middleware::trace: { level: info }`。自定义 subscriber 也需启用对应 span。
+
 ### 模块化示例
 
 跨 API、model 和 layer crate 的路由及 OpenAPI 生成方式可参考 [`example_modular`](https://github.com/CloverOS/nano-rs/tree/main/example_modular)。
