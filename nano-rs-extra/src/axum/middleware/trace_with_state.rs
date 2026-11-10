@@ -8,6 +8,7 @@ use axum::middleware::Next;
 use axum::response::IntoResponse;
 use axum_client_ip::ClientIp;
 use nano_rs_core::config::logger::LogConfig;
+use std::sync::Arc;
 use std::time::Instant;
 
 /// ignore trace
@@ -27,14 +28,14 @@ fn should_ignore_trace(log_config: &LogConfig, method: &str, path: &str) -> bool
 }
 
 pub async fn trace_http_with_state(
-    State(log_config): State<LogConfig>,
+    State(log_config): State<Arc<LogConfig>>,
     ClientIp(secure_ip): ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let request_id = resolve_request_id(req.headers());
     if should_ignore_trace(
-        &log_config,
+        log_config.as_ref(),
         &req.method().to_string(),
         &req.uri().path().to_string(),
     ) {
@@ -67,14 +68,14 @@ pub async fn trace_http_with_state(
 }
 
 pub async fn trace_http_with_request_body_with_state(
-    State(log_config): State<LogConfig>,
+    State(log_config): State<Arc<LogConfig>>,
     secure_ip: ClientIp,
     req: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let request_id = resolve_request_id(req.headers());
     if should_ignore_trace(
-        &log_config,
+        log_config.as_ref(),
         &req.method().to_string(),
         &req.uri().path().to_string(),
     ) {
@@ -112,7 +113,7 @@ pub async fn trace_http_with_request_body_with_state(
 }
 
 pub async fn trace_http_with_request_body_and_response_body_with_state(
-    State(log_config): State<LogConfig>,
+    State(log_config): State<Arc<LogConfig>>,
     secure_ip: ClientIp,
     req: Request,
     next: Next,
@@ -140,7 +141,7 @@ pub async fn trace_http_with_request_body_and_response_body_with_state(
         }
     }
     if should_ignore_trace(
-        &log_config,
+        log_config.as_ref(),
         &req.method().to_string(),
         &req.uri().path().to_string(),
     ) {
