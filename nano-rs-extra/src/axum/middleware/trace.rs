@@ -320,6 +320,7 @@ mod tests {
 
     use std::collections::HashMap;
     use std::io;
+    use std::sync::Arc;
     use std::time::Duration;
 
     #[test]
@@ -481,7 +482,7 @@ mod tests {
                 }),
             )
             .route_layer(from_fn_with_state(
-                log_config,
+                Arc::new(log_config),
                 crate::axum::middleware::trace_with_state::trace_http_with_request_body_and_response_body_with_state,
             ))
             .layer(ClientIpSource::XRealIp.into_extension());
@@ -528,7 +529,7 @@ mod tests {
                 }),
             )
             .route_layer(from_fn_with_state(
-                log_config,
+                Arc::new(log_config),
                 crate::axum::middleware::trace_with_state::trace_http_with_request_body_and_response_body_with_state,
             ))
             .layer(ClientIpSource::XRealIp.into_extension());

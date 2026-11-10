@@ -166,6 +166,8 @@ impl AppStarter {
         let log_req = self.rest_config.log.log_req.clone().unwrap_or(true);
         let app = self.app.clone().fallback(handler::not_page::handler_404);
         self.app = if log_req {
+            // Axum clones middleware state per route and request; keep the config shared.
+            let log_config = log_config.map(Arc::new);
             if log_request_body {
                 if log_response_body {
                     match log_config {
